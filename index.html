@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
     <title>Gestor de Torneos Yu-Gi-Oh!</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -96,7 +97,7 @@
             }
 
             function deleteTournamentDirect(id) {
-                if (!window.confirm('¿Eliminar este torneo?')) return;
+                if (!window.confirm('Â¿Eliminar este torneo?')) return;
                 setTournaments(tournaments.filter(t => t.id !== id));
                 if (activeTournamentId === id) {
                     setActiveTournamentId(null);
@@ -283,7 +284,7 @@
             }
 
             function deleteRoundDirect(roundIndex) {
-                if (!window.confirm('¿Eliminar esta ronda?')) return;
+                if (!window.confirm('Â¿Eliminar esta ronda?')) return;
                 
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
@@ -410,7 +411,7 @@
                                                 <div className="flex justify-between mb-3">
                                                     <div>
                                                         <h3 className="text-xl font-bold text-purple-900">{t.name}</h3>
-                                                        <p className="text-sm text-gray-600">{t.players.length} jugadores • {t.rounds.length} rondas</p>
+                                                        <p className="text-sm text-gray-600">{t.players.length} jugadores Â• {t.rounds.length} rondas</p>
                                                     </div>
                                                     <button
                                                         onClick={() => deleteTournamentDirect(t.id)}
@@ -463,7 +464,7 @@
                                 className={'px-6 py-3 rounded-lg font-semibold ' + (view === 'standings' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
                             >
                                 <Medal className="w-5 h-5 inline mr-2" />
-                                Clasificación
+                                ClasificaciÃ³n
                             </button>
                             <button
                                 onClick={() => setView('players')}
@@ -706,7 +707,7 @@
 
                         {view === 'standings' && (
                             <div className="bg-white rounded-lg shadow-xl p-6">
-                                <h2 className="text-2xl font-bold text-purple-900 mb-4">Clasificación</h2>
+                                <h2 className="text-2xl font-bold text-purple-900 mb-4">ClasificaciÃ³n</h2>
                                 {sortedPlayers.length === 0 ? (
                                     <p className="text-center text-gray-500 py-8">No hay jugadores</p>
                                 ) : (
@@ -755,4 +756,5 @@
         root.render(<YugiohTournament />);
     </script>
 </body>
+
 </html>

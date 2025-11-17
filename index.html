@@ -2,24 +2,66 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Torneo YGO">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="Gestor de torneos Yu-Gi-Oh!">
     <link rel="manifest" href="manifest.json">
-    <title>Gestor de Torneos Yu-Gi-Oh!</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Crect width='240' height='240' fill='%237c3aed'/%3E%3Cpath d='M120 60l30 60h-60l30-60z M90 140h60l-30 40-30-40z' fill='%23fbbf24'/%3E%3C/svg%3E">
+    <title>Torneo Yu-Gi-Oh!</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; }
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        #root {
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (display-mode: standalone) {
+            body { 
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+        .scrollable {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
-        // Iconos SVG simples
         const Trophy = ({ className }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
@@ -75,24 +117,45 @@
             </svg>
         );
 
+        const ArrowLeft = ({ className }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+        );
+
         function YugiohTournament() {
             const [tournaments, setTournaments] = useState([]);
             const [activeTournamentId, setActiveTournamentId] = useState(null);
             const [view, setView] = useState('list');
 
+            useEffect(() => {
+                const saved = localStorage.getItem('yugioh-tournaments');
+                if (saved) {
+                    try {
+                        setTournaments(JSON.parse(saved));
+                    } catch (e) {
+                        console.error('Error:', e);
+                    }
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
+            }, [tournaments]);
+
             const activeTournament = tournaments.find(t => t.id === activeTournamentId);
 
             function createTournament(name) {
                 if (!name.trim()) return;
-                const newTournament = {
+                const newT = {
                     id: Date.now(),
                     name: name.trim(),
                     players: [],
                     rounds: [],
                     currentRoundIndex: 0
                 };
-                setTournaments([...tournaments, newTournament]);
-                setActiveTournamentId(newTournament.id);
+                setTournaments([...tournaments, newT]);
+                setActiveTournamentId(newT.id);
                 setView('standings');
             }
 
@@ -107,7 +170,7 @@
 
             function addPlayer(name) {
                 if (!name.trim() || !activeTournament) return;
-                const newPlayer = {
+                const newP = {
                     id: Date.now(),
                     name: name.trim(),
                     points: 0,
@@ -118,16 +181,16 @@
                 };
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
-                        ? { ...t, players: [...t.players, newPlayer] }
+                        ? { ...t, players: [...t.players, newP] }
                         : t
                 );
                 setTournaments(updated);
             }
 
-            function deletePlayer(playerId) {
+            function deletePlayer(pid) {
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
-                        ? { ...t, players: t.players.filter(p => p.id !== playerId) }
+                        ? { ...t, players: t.players.filter(p => p.id !== pid) }
                         : t
                 );
                 setTournaments(updated);
@@ -151,33 +214,33 @@
                 for (let i = 0; i < sorted.length; i++) {
                     if (used.has(sorted[i].id)) continue;
 
-                    let opponent = null;
+                    let opp = null;
                     for (let j = i + 1; j < sorted.length; j++) {
                         if (!used.has(sorted[j].id) && !sorted[i].opponents.includes(sorted[j].id)) {
-                            opponent = sorted[j];
+                            opp = sorted[j];
                             break;
                         }
                     }
 
-                    if (!opponent) {
+                    if (!opp) {
                         for (let j = i + 1; j < sorted.length; j++) {
                             if (!used.has(sorted[j].id)) {
-                                opponent = sorted[j];
+                                opp = sorted[j];
                                 break;
                             }
                         }
                     }
 
-                    if (opponent) {
+                    if (opp) {
                         matches.push({
                             id: Date.now() + i,
                             p1: { ...sorted[i] },
-                            p2: { ...opponent },
+                            p2: { ...opp },
                             result: null,
                             tiePoints: 1
                         });
                         used.add(sorted[i].id);
-                        used.add(opponent.id);
+                        used.add(opp.id);
                     } else {
                         matches.push({
                             id: Date.now() + i,
@@ -190,7 +253,7 @@
                     }
                 }
 
-                const newRound = {
+                const newR = {
                     number: activeTournament.rounds.length + 1,
                     matches: matches,
                     completed: false
@@ -198,32 +261,32 @@
 
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
-                        ? { ...t, rounds: [...t.rounds, newRound], currentRoundIndex: t.rounds.length }
+                        ? { ...t, rounds: [...t.rounds, newR], currentRoundIndex: t.rounds.length }
                         : t
                 );
                 setTournaments(updated);
                 setView('rounds');
             }
 
-            function setResult(matchIndex, result, points) {
+            function setResult(mi, res, pts) {
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
-                    const newRounds = [...t.rounds];
-                    newRounds[t.currentRoundIndex].matches[matchIndex].result = result;
-                    if (result === 'tie') {
-                        newRounds[t.currentRoundIndex].matches[matchIndex].tiePoints = points;
+                    const newR = [...t.rounds];
+                    newR[t.currentRoundIndex].matches[mi].result = res;
+                    if (res === 'tie') {
+                        newR[t.currentRoundIndex].matches[mi].tiePoints = pts;
                     }
-                    return { ...t, rounds: newRounds };
+                    return { ...t, rounds: newR };
                 });
                 setTournaments(updated);
             }
 
-            function setByePoints(matchIndex, points) {
+            function setByePoints(mi, pts) {
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
-                    const newRounds = [...t.rounds];
-                    newRounds[t.currentRoundIndex].matches[matchIndex].byePoints = points;
-                    return { ...t, rounds: newRounds };
+                    const newR = [...t.rounds];
+                    newR[t.currentRoundIndex].matches[mi].byePoints = pts;
+                    return { ...t, rounds: newR };
                 });
                 setTournaments(updated);
             }
@@ -232,42 +295,41 @@
                 if (!activeTournament) return;
                 const round = activeTournament.rounds[activeTournament.currentRoundIndex];
                 
-                const allDone = round.matches.every(m => m.result !== null);
-                if (!allDone) {
-                    alert('Completa todos los duelos primero');
+                if (!round.matches.every(m => m.result !== null)) {
+                    alert('Completa todos los duelos');
                     return;
                 }
 
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
                     
-                    const newPlayers = [...t.players];
-                    round.matches.forEach(match => {
-                        if (match.result === 'bye') {
-                            const p = newPlayers.find(pl => pl.id === match.p1.id);
+                    const newP = [...t.players];
+                    round.matches.forEach(m => {
+                        if (m.result === 'bye') {
+                            const p = newP.find(pl => pl.id === m.p1.id);
                             if (p) {
-                                p.points += match.byePoints || 3;
+                                p.points += m.byePoints || 3;
                                 p.wins += 1;
                             }
-                        } else if (match.p2) {
-                            const p1 = newPlayers.find(pl => pl.id === match.p1.id);
-                            const p2 = newPlayers.find(pl => pl.id === match.p2.id);
+                        } else if (m.p2) {
+                            const p1 = newP.find(pl => pl.id === m.p1.id);
+                            const p2 = newP.find(pl => pl.id === m.p2.id);
                             
                             if (p1 && p2) {
                                 if (!p1.opponents.includes(p2.id)) p1.opponents.push(p2.id);
                                 if (!p2.opponents.includes(p1.id)) p2.opponents.push(p1.id);
 
-                                if (match.result === 'p1') {
+                                if (m.result === 'p1') {
                                     p1.points += 3;
                                     p1.wins += 1;
                                     p2.losses += 1;
-                                } else if (match.result === 'p2') {
+                                } else if (m.result === 'p2') {
                                     p2.points += 3;
                                     p2.wins += 1;
                                     p1.losses += 1;
-                                } else if (match.result === 'tie') {
-                                    p1.points += match.tiePoints;
-                                    p2.points += match.tiePoints;
+                                } else if (m.result === 'tie') {
+                                    p1.points += m.tiePoints;
+                                    p2.points += m.tiePoints;
                                     p1.ties += 1;
                                     p2.ties += 1;
                                 }
@@ -275,50 +337,50 @@
                         }
                     });
 
-                    const newRounds = [...t.rounds];
-                    newRounds[t.currentRoundIndex].completed = true;
+                    const newR = [...t.rounds];
+                    newR[t.currentRoundIndex].completed = true;
 
-                    return { ...t, players: newPlayers, rounds: newRounds };
+                    return { ...t, players: newP, rounds: newR };
                 });
                 setTournaments(updated);
             }
 
-            function deleteRoundDirect(roundIndex) {
+            function deleteRoundDirect(ri) {
                 if (!window.confirm('¿Eliminar esta ronda?')) return;
                 
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
                     
-                    const round = t.rounds[roundIndex];
-                    let newPlayers = [...t.players];
+                    const round = t.rounds[ri];
+                    let newP = [...t.players];
 
                     if (round.completed) {
-                        round.matches.forEach(match => {
-                            if (match.result === 'bye') {
-                                const p = newPlayers.find(pl => pl.id === match.p1.id);
+                        round.matches.forEach(m => {
+                            if (m.result === 'bye') {
+                                const p = newP.find(pl => pl.id === m.p1.id);
                                 if (p) {
-                                    p.points -= match.byePoints || 3;
+                                    p.points -= m.byePoints || 3;
                                     p.wins -= 1;
                                 }
-                            } else if (match.p2) {
-                                const p1 = newPlayers.find(pl => pl.id === match.p1.id);
-                                const p2 = newPlayers.find(pl => pl.id === match.p2.id);
+                            } else if (m.p2) {
+                                const p1 = newP.find(pl => pl.id === m.p1.id);
+                                const p2 = newP.find(pl => pl.id === m.p2.id);
                                 
                                 if (p1 && p2) {
                                     p1.opponents = p1.opponents.filter(id => id !== p2.id);
                                     p2.opponents = p2.opponents.filter(id => id !== p1.id);
 
-                                    if (match.result === 'p1') {
+                                    if (m.result === 'p1') {
                                         p1.points -= 3;
                                         p1.wins -= 1;
                                         p2.losses -= 1;
-                                    } else if (match.result === 'p2') {
+                                    } else if (m.result === 'p2') {
                                         p2.points -= 3;
                                         p2.wins -= 1;
                                         p1.losses -= 1;
-                                    } else if (match.result === 'tie') {
-                                        p1.points -= match.tiePoints;
-                                        p2.points -= match.tiePoints;
+                                    } else if (m.result === 'tie') {
+                                        p1.points -= m.tiePoints;
+                                        p2.points -= m.tiePoints;
                                         p1.ties -= 1;
                                         p2.ties -= 1;
                                     }
@@ -327,22 +389,22 @@
                         });
                     }
 
-                    const newRounds = t.rounds.filter((r, i) => i !== roundIndex);
-                    let newIndex = t.currentRoundIndex;
-                    if (newIndex >= newRounds.length && newRounds.length > 0) {
-                        newIndex = newRounds.length - 1;
-                    } else if (newRounds.length === 0) {
-                        newIndex = 0;
+                    const newR = t.rounds.filter((r, i) => i !== ri);
+                    let newI = t.currentRoundIndex;
+                    if (newI >= newR.length && newR.length > 0) {
+                        newI = newR.length - 1;
+                    } else if (newR.length === 0) {
+                        newI = 0;
                     }
 
-                    return { ...t, players: newPlayers, rounds: newRounds, currentRoundIndex: newIndex };
+                    return { ...t, players: newP, rounds: newR, currentRoundIndex: newI };
                 });
                 setTournaments(updated);
             }
 
-            function changeRound(index) {
+            function changeRound(i) {
                 const updated = tournaments.map(t => 
-                    t.id === activeTournamentId ? { ...t, currentRoundIndex: index } : t
+                    t.id === activeTournamentId ? { ...t, currentRoundIndex: i } : t
                 );
                 setTournaments(updated);
             }
@@ -360,25 +422,25 @@
 
             if (!activeTournamentId || view === 'list') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-4">
-                        <div className="max-w-6xl mx-auto">
-                            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg shadow-2xl p-6 mb-6 border-4 border-yellow-300">
-                                <div className="flex items-center justify-center gap-3">
-                                    <Trophy className="w-10 h-10 text-purple-900" />
-                                    <h1 className="text-4xl font-bold text-purple-900">Gestor de Torneos Yu-Gi-Oh!</h1>
-                                    <Trophy className="w-10 h-10 text-purple-900" />
+                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
+                                <div className="flex items-center justify-center gap-2">
+                                    <Trophy className="w-8 h-8 text-purple-900" />
+                                    <h1 className="text-2xl font-bold text-purple-900">Torneos Yu-Gi-Oh!</h1>
+                                    <Trophy className="w-8 h-8 text-purple-900" />
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-lg shadow-xl p-6">
-                                <h2 className="text-2xl font-bold text-purple-900 mb-4">Mis Torneos</h2>
+                            <div className="bg-white rounded-xl shadow-xl p-4 mb-20">
+                                <h2 className="text-xl font-bold text-purple-900 mb-3">Mis Torneos</h2>
 
-                                <div className="flex gap-3 mb-6">
+                                <div className="flex gap-2 mb-4">
                                     <input
                                         id="tournamentName"
                                         type="text"
                                         placeholder="Nombre del torneo"
-                                        className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg"
+                                        className="flex-1 px-3 py-2 border-2 border-purple-300 rounded-lg text-base"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 createTournament(e.target.value);
@@ -392,26 +454,25 @@
                                             createTournament(input.value);
                                             input.value = '';
                                         }}
-                                        className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700"
+                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold"
                                     >
-                                        <Plus className="w-5 h-5 inline mr-2" />
-                                        Crear
+                                        <Plus className="w-5 h-5 inline" />
                                     </button>
                                 </div>
 
                                 {tournaments.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">No hay torneos creados</p>
+                                    <div className="text-center py-8">
+                                        <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-gray-500">No hay torneos</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-3">
                                         {tournaments.map(t => (
-                                            <div key={t.id} className="bg-purple-100 p-6 rounded-lg border-2 border-purple-300">
-                                                <div className="flex justify-between mb-3">
+                                            <div key={t.id} className="bg-purple-100 p-4 rounded-lg border-2 border-purple-300">
+                                                <div className="flex justify-between mb-2">
                                                     <div>
-                                                        <h3 className="text-xl font-bold text-purple-900">{t.name}</h3>
-                                                        <p className="text-sm text-gray-600">{t.players.length} jugadores  {t.rounds.length} rondas</p>
+                                                        <h3 className="text-lg font-bold text-purple-900">{t.name}</h3>
+                                                        <p className="text-sm text-gray-600">{t.players.length} jugadores • {t.rounds.length} rondas</p>
                                                     </div>
                                                     <button
                                                         onClick={() => deleteTournamentDirect(t.id)}
@@ -425,8 +486,8 @@
                                                         setActiveTournamentId(t.id);
                                                         setView('standings');
                                                     }}
-                                                    className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-                                                    >
+                                                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold"
+                                                >
                                                     Abrir
                                                 </button>
                                             </div>
@@ -440,58 +501,56 @@
             }
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-4">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg shadow-2xl p-6 mb-6 border-4 border-yellow-300">
+                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3">
+                    <div className="max-w-4xl mx-auto pb-20">
+                        <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-3 mb-3 border-4 border-yellow-300">
                             <div className="flex items-center justify-between">
                                 <button
                                     onClick={() => setView('list')}
-                                    className="bg-purple-900 text-yellow-400 px-4 py-2 rounded-lg font-semibold"
+                                    className="bg-purple-900 text-yellow-400 px-3 py-2 rounded-lg font-semibold flex items-center gap-1"
                                 >
-                                    ? Torneos
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Torneos
                                 </button>
-                                <div className="flex items-center gap-3">
-                                    <Trophy className="w-10 h-10 text-purple-900" />
-                                    <h1 className="text-3xl font-bold text-purple-900">{activeTournament.name}</h1>
-                                </div>
-                                <div className="w-24"></div>
+                                <h1 className="text-xl font-bold text-purple-900 truncate mx-2">{activeTournament.name}</h1>
+                                <div className="w-20"></div>
                             </div>
                         </div>
 
-                        <div className="flex gap-2 mb-6">
+                        <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
                             <button
                                 onClick={() => setView('standings')}
-                                className={'px-6 py-3 rounded-lg font-semibold ' + (view === 'standings' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
+                                className={'px-4 py-2 rounded-lg font-semibold whitespace-nowrap flex items-center gap-1 ' + (view === 'standings' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
                             >
-                                <Medal className="w-5 h-5 inline mr-2" />
+                                <Medal className="w-4 h-4" />
                                 Clasificación
                             </button>
                             <button
                                 onClick={() => setView('players')}
-                                className={'px-6 py-3 rounded-lg font-semibold ' + (view === 'players' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
+                                className={'px-4 py-2 rounded-lg font-semibold whitespace-nowrap flex items-center gap-1 ' + (view === 'players' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
                             >
-                                <Users className="w-5 h-5 inline mr-2" />
+                                <Users className="w-4 h-4" />
                                 Jugadores
                             </button>
                             <button
                                 onClick={() => setView('rounds')}
-                                className={'px-6 py-3 rounded-lg font-semibold ' + (view === 'rounds' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
+                                className={'px-4 py-2 rounded-lg font-semibold whitespace-nowrap flex items-center gap-1 ' + (view === 'rounds' ? 'bg-yellow-400 text-purple-900' : 'bg-purple-800 text-white')}
                             >
-                                <Swords className="w-5 h-5 inline mr-2" />
+                                <Swords className="w-4 h-4" />
                                 Rondas
                             </button>
                         </div>
 
                         {view === 'players' && (
-                            <div className="bg-white rounded-lg shadow-xl p-6">
-                                <h2 className="text-2xl font-bold text-purple-900 mb-4">Jugadores</h2>
+                            <div className="bg-white rounded-xl shadow-xl p-4">
+                                <h2 className="text-xl font-bold text-purple-900 mb-3">Jugadores</h2>
                                 
-                                <div className="flex gap-3 mb-6">
+                                <div className="flex gap-2 mb-4">
                                     <input
                                         id="playerName"
                                         type="text"
                                         placeholder="Nombre del jugador"
-                                        className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg"
+                                        className="flex-1 px-3 py-2 border-2 border-purple-300 rounded-lg"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter') {
                                                 addPlayer(e.target.value);
@@ -505,65 +564,65 @@
                                             addPlayer(input.value);
                                             input.value = '';
                                         }}
-                                        className="bg-purple-600 text-white px-6 py-3 rounded-lg"
+                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg"
                                     >
-                                        Agregar
+                                        <Plus className="w-5 h-5" />
                                     </button>
                                 </div>
 
                                 <div className="space-y-2">
                                     {activeTournament.players.map(p => (
-                                        <div key={p.id} className="flex justify-between items-center bg-purple-100 p-4 rounded-lg">
+                                        <div key={p.id} className="flex justify-between items-center bg-purple-100 p-3 rounded-lg">
                                             <span className="font-semibold">{p.name}</span>
                                             <button
                                                 onClick={() => deletePlayer(p.id)}
-                                                className="text-red-600 hover:text-red-800"
+                                                className="text-red-600"
                                             >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
                                         </div>
                                     ))}
                                     {activeTournament.players.length === 0 && (
-                                        <p className="text-center text-gray-500 py-8">No hay jugadores</p>
+                                        <p className="text-center text-gray-500 py-6">No hay jugadores</p>
                                     )}
                                 </div>
                             </div>
                         )}
 
                         {view === 'rounds' && (
-                            <div className="bg-white rounded-lg shadow-xl p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-2xl font-bold text-purple-900">Rondas</h2>
+                            <div className="bg-white rounded-xl shadow-xl p-3">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h2 className="text-xl font-bold text-purple-900">Rondas</h2>
                                     {canGenerate && activeTournament.players.length >= 2 && (
                                         <button
                                             onClick={generateRound}
-                                            className="bg-green-600 text-white px-6 py-3 rounded-lg font-bold"
+                                            className="bg-green-600 text-white px-3 py-2 rounded-lg font-bold text-sm flex items-center gap-1"
                                         >
-                                            <Play className="w-5 h-5 inline mr-2" />
-                                            {activeTournament.rounds.length === 0 ? 'Iniciar' : 'Nueva Ronda'}
+                                            <Play className="w-4 h-4" />
+                                            {activeTournament.rounds.length === 0 ? 'Iniciar' : 'Nueva'}
                                         </button>
                                     )}
                                 </div>
 
                                 {activeTournament.rounds.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <Swords className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <div className="text-center py-8">
+                                        <Swords className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                         <p className="text-gray-500">No hay rondas</p>
                                     </div>
                                 ) : (
                                     <div>
-                                        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                                        <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
                                             {activeTournament.rounds.map((r, i) => (
-                                                <div key={i} className="relative">
+                                                <div key={i} className="relative flex-shrink-0">
                                                     <button
                                                         onClick={() => changeRound(i)}
-                                                        className={'px-4 py-2 rounded-lg font-semibold ' + (activeTournament.currentRoundIndex === i ? 'bg-purple-600 text-white' : r.completed ? 'bg-green-100 text-green-700' : 'bg-gray-200')}
+                                                        className={'px-3 py-2 rounded-lg font-semibold whitespace-nowrap text-sm ' + (activeTournament.currentRoundIndex === i ? 'bg-purple-600 text-white' : r.completed ? 'bg-green-100 text-green-700' : 'bg-gray-200')}
                                                     >
-                                                        Ronda {r.number} {r.completed && '?'}
+                                                        Ronda {r.number} {r.completed && '✓'}
                                                     </button>
                                                     <button
                                                         onClick={() => deleteRoundDirect(i)}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 w-6 h-6 flex items-center justify-center"
+                                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 w-5 h-5 flex items-center justify-center"
                                                     >
                                                         <X className="w-3 h-3" />
                                                     </button>
@@ -573,129 +632,131 @@
 
                                         {activeTournament.rounds[activeTournament.currentRoundIndex] && (
                                             <div>
-                                                <table className="w-full">
-                                                    <thead>
-                                                        <tr className="bg-purple-600 text-white">
-                                                            <th className="px-4 py-3 text-left">Mesa</th>
-                                                            <th className="px-4 py-3 text-left">Jugador 1</th>
-                                                            <th className="px-4 py-3 text-center">VS</th>
-                                                            <th className="px-4 py-3 text-left">Jugador 2</th>
-                                                            <th className="px-4 py-3 text-center">Resultado</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {activeTournament.rounds[activeTournament.currentRoundIndex].matches.map((m, mi) => (
-                                                            <tr key={m.id} className="border-b">
-                                                                <td className="px-4 py-3">#{mi + 1}</td>
-                                                                <td className="px-4 py-3">
-                                                                    <div className="font-semibold">{m.p1.name}</div>
-                                                                    <div className="text-xs text-gray-500">{m.p1.points} pts</div>
-                                                                </td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    <Swords className="w-5 h-5 mx-auto text-purple-600" />
-                                                                </td>
-                                                                <td className="px-4 py-3">
-                                                                    {m.p2 ? (
-                                                                        <>
-                                                                            <div className="font-semibold">{m.p2.name}</div>
-                                                                            <div className="text-xs text-gray-500">{m.p2.points} pts</div>
-                                                                        </>
-                                                                    ) : (
-                                                                        <span className="text-gray-400">BYE</span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3">
-                                                                    {activeTournament.rounds[activeTournament.currentRoundIndex].completed ? (
-                                                                        <div className="text-center">
-                                                                            {m.result === 'bye' && (
-                                                                                <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                                                                                    BYE {m.byePoints}pts
-                                                                                </span>
-                                                                            )}
-                                                                            {m.result === 'p1' && (
-                                                                                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                                                                                    Victoria J1
-                                                                                </span>
-                                                                            )}
-                                                                            {m.result === 'p2' && (
-                                                                                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                                                                                    Victoria J2
-                                                                                </span>
-                                                                            )}
-                                                                            {m.result === 'tie' && (
-                                                                                <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">
-                                                                                    Empate {m.tiePoints}pt
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    ) : m.result === 'bye' ? (
-                                                                        <div className="flex flex-col gap-2">
-                                                                            <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm text-center">BYE</span>
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-xs">Puntos:</span>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    min="0"
-                                                                                    max="3"
-                                                                                    value={m.byePoints}
-                                                                                    onChange={(e) => setByePoints(mi, parseInt(e.target.value) || 0)}
-                                                                                    className="w-16 px-2 py-1 border-2 border-purple-300 rounded text-center"
-                                                                                />
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="bg-purple-600 text-white">
+                                                                <th className="px-2 py-2 text-left text-xs">Mesa</th>
+                                                                <th className="px-2 py-2 text-left text-xs">Jugador 1</th>
+                                                                <th className="px-2 py-2 text-center text-xs">VS</th>
+                                                                <th className="px-2 py-2 text-left text-xs">Jugador 2</th>
+                                                                <th className="px-2 py-2 text-center text-xs">Resultado</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {activeTournament.rounds[activeTournament.currentRoundIndex].matches.map((m, mi) => (
+                                                                <tr key={m.id} className="border-b">
+                                                                    <td className="px-2 py-2 font-bold text-purple-900">#{mi + 1}</td>
+                                                                    <td className="px-2 py-2">
+                                                                        <div className="font-semibold text-purple-900 text-xs">{m.p1.name}</div>
+                                                                        <div className="text-xs text-gray-500">{m.p1.points}pts</div>
+                                                                    </td>
+                                                                    <td className="px-2 py-2 text-center">
+                                                                        <Swords className="w-4 h-4 mx-auto text-purple-600" />
+                                                                    </td>
+                                                                    <td className="px-2 py-2">
+                                                                        {m.p2 ? (
+                                                                            <>
+                                                                                <div className="font-semibold text-purple-900 text-xs">{m.p2.name}</div>
+                                                                                <div className="text-xs text-gray-500">{m.p2.points}pts</div>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="text-gray-400 text-xs">BYE</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="px-2 py-2">
+                                                                        {activeTournament.rounds[activeTournament.currentRoundIndex].completed ? (
+                                                                            <div className="text-center">
+                                                                                {m.result === 'bye' && (
+                                                                                    <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                                                                        BYE {m.byePoints}pts
+                                                                                    </span>
+                                                                                )}
+                                                                                {m.result === 'p1' && (
+                                                                                    <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                                                                        J1
+                                                                                    </span>
+                                                                                )}
+                                                                                {m.result === 'p2' && (
+                                                                                    <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                                                                        J2
+                                                                                    </span>
+                                                                                )}
+                                                                                {m.result === 'tie' && (
+                                                                                    <span className="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                                                                        Empate {m.tiePoints}pt
+                                                                                    </span>
+                                                                                )}
                                                                             </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div className="flex flex-col gap-2">
-                                                                            <div className="grid grid-cols-3 gap-1">
-                                                                                <button
-                                                                                    onClick={() => setResult(mi, 'p1', 1)}
-                                                                                    className={'px-2 py-1 rounded text-xs font-semibold ' + (m.result === 'p1' ? 'bg-green-500 text-white' : 'bg-gray-200')}
-                                                                                >
-                                                                                    J1
-                                                                                </button>
-                                                                                <button
-                                                                                    onClick={() => setResult(mi, 'tie', m.tiePoints || 1)}
-                                                                                    className={'px-2 py-1 rounded text-xs font-semibold ' + (m.result === 'tie' ? 'bg-yellow-500 text-white' : 'bg-gray-200')}
-                                                                                >
-                                                                                    Empate
-                                                                                </button>
-                                                                                <button
-                                                                                    onClick={() => setResult(mi, 'p2', 1)}
-                                                                                    className={'px-2 py-1 rounded text-xs font-semibold ' + (m.result === 'p2' ? 'bg-green-500 text-white' : 'bg-gray-200')}
-                                                                                >
-                                                                                    J2
-                                                                                </button>
+                                                                        ) : m.result === 'bye' ? (
+                                                                            <div className="flex flex-col gap-1">
+                                                                                <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold text-center">BYE</span>
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-xs">Pts:</span>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        min="0"
+                                                                                        max="3"
+                                                                                        value={m.byePoints}
+                                                                                        onChange={(e) => setByePoints(mi, parseInt(e.target.value) || 0)}
+                                                                                        className="w-12 px-1 py-1 border-2 border-purple-300 rounded text-center text-xs"
+                                                                                    />
+                                                                                </div>
                                                                             </div>
-                                                                            {m.result === 'tie' && (
-                                                                                <div className="flex gap-1">
+                                                                        ) : (
+                                                                            <div className="flex flex-col gap-1">
+                                                                                <div className="grid grid-cols-3 gap-1">
                                                                                     <button
-                                                                                        onClick={() => setResult(mi, 'tie', 0)}
-                                                                                        className={'flex-1 px-2 py-1 rounded text-xs font-semibold ' + (m.tiePoints === 0 ? 'bg-purple-600 text-white' : 'bg-gray-200')}
+                                                                                        onClick={() => setResult(mi, 'p1', 1)}
+                                                                                        className={'px-1 py-1 rounded text-xs font-semibold ' + (m.result === 'p1' ? 'bg-green-500 text-white' : 'bg-gray-200')}
                                                                                     >
-                                                                                        0pts
+                                                                                        J1
                                                                                     </button>
                                                                                     <button
-                                                                                        onClick={() => setResult(mi, 'tie', 1)}
-                                                                                        className={'flex-1 px-2 py-1 rounded text-xs font-semibold ' + (m.tiePoints === 1 ? 'bg-purple-600 text-white' : 'bg-gray-200')}
+                                                                                        onClick={() => setResult(mi, 'tie', m.tiePoints || 1)}
+                                                                                        className={'px-1 py-1 rounded text-xs font-semibold ' + (m.result === 'tie' ? 'bg-yellow-500 text-white' : 'bg-gray-200')}
                                                                                     >
-                                                                                        1pt
+                                                                                        Emp
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => setResult(mi, 'p2', 1)}
+                                                                                        className={'px-1 py-1 rounded text-xs font-semibold ' + (m.result === 'p2' ? 'bg-green-500 text-white' : 'bg-gray-200')}
+                                                                                    >
+                                                                                        J2
                                                                                     </button>
                                                                                 </div>
-                                                                            )}
-                                                                        </div>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                                                {m.result === 'tie' && (
+                                                                                    <div className="flex gap-1">
+                                                                                        <button
+                                                                                            onClick={() => setResult(mi, 'tie', 0)}
+                                                                                            className={'flex-1 px-1 py-1 rounded text-xs font-semibold ' + (m.tiePoints === 0 ? 'bg-purple-600 text-white' : 'bg-gray-200')}
+                                                                                        >
+                                                                                            0
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => setResult(mi, 'tie', 1)}
+                                                                                            className={'flex-1 px-1 py-1 rounded text-xs font-semibold ' + (m.tiePoints === 1 ? 'bg-purple-600 text-white' : 'bg-gray-200')}
+                                                                                        >
+                                                                                            1
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
 
                                                 {!activeTournament.rounds[activeTournament.currentRoundIndex].completed && (
                                                     <button
                                                         onClick={completeRound}
-                                                        className="w-full mt-6 bg-purple-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-purple-700"
+                                                        className="w-full mt-3 bg-purple-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2"
                                                     >
                                                         Completar Ronda {activeTournament.rounds[activeTournament.currentRoundIndex].number}
-                                                        <ChevronRight className="w-6 h-6 inline ml-2" />
+                                                        <ChevronRight className="w-5 h-5" />
                                                     </button>
                                                 )}
                                             </div>
@@ -706,44 +767,46 @@
                         )}
 
                         {view === 'standings' && (
-                            <div className="bg-white rounded-lg shadow-xl p-6">
-                                <h2 className="text-2xl font-bold text-purple-900 mb-4">Clasificación</h2>
+                            <div className="bg-white rounded-xl shadow-xl p-3">
+                                <h2 className="text-xl font-bold text-purple-900 mb-3">Clasificación</h2>
                                 {sortedPlayers.length === 0 ? (
-                                    <p className="text-center text-gray-500 py-8">No hay jugadores</p>
+                                    <p className="text-center text-gray-500 py-6">No hay jugadores</p>
                                 ) : (
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="bg-purple-600 text-white">
-                                                <th className="px-4 py-3 text-left">#</th>
-                                                <th className="px-4 py-3 text-left">Jugador</th>
-                                                <th className="px-4 py-3 text-center">V</th>
-                                                <th className="px-4 py-3 text-center">D</th>
-                                                <th className="px-4 py-3 text-center">E</th>
-                                                <th className="px-4 py-3 text-center">Puntos</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sortedPlayers.map((p, i) => (
-                                                <tr key={p.id} className={'border-b ' + (i === 0 ? 'bg-yellow-100' : i === 1 ? 'bg-gray-100' : i === 2 ? 'bg-orange-100' : '')}>
-                                                    <td className="px-4 py-3 font-bold">
-                                                        {i === 0 && '??'}
-                                                        {i === 1 && '??'}
-                                                        {i === 2 && '??'}
-                                                        {i > 2 && (i + 1)}
-                                                    </td>
-                                                    <td className="px-4 py-3 font-semibold">{p.name}</td>
-                                                    <td className="px-4 py-3 text-center text-green-600 font-bold">{p.wins}</td>
-                                                    <td className="px-4 py-3 text-center text-red-600 font-bold">{p.losses}</td>
-                                                    <td className="px-4 py-3 text-center text-yellow-600 font-bold">{p.ties}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <span className="bg-purple-600 text-white px-3 py-1 rounded-full font-bold">
-                                                            {p.points}
-                                                        </span>
-                                                    </td>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-purple-600 text-white">
+                                                    <th className="px-2 py-2 text-left text-xs">#</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Jugador</th>
+                                                    <th className="px-2 py-2 text-center text-xs">V</th>
+                                                    <th className="px-2 py-2 text-center text-xs">D</th>
+                                                    <th className="px-2 py-2 text-center text-xs">E</th>
+                                                    <th className="px-2 py-2 text-center text-xs">Puntos</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {sortedPlayers.map((p, i) => (
+                                                    <tr key={p.id} className={'border-b ' + (i === 0 ? 'bg-yellow-100' : i === 1 ? 'bg-gray-100' : i === 2 ? 'bg-orange-100' : '')}>
+                                                        <td className="px-2 py-2 font-bold text-base">
+                                                            {i === 0 && '🥇'}
+                                                            {i === 1 && '🥈'}
+                                                            {i === 2 && '🥉'}
+                                                            {i > 2 && (i + 1)}
+                                                        </td>
+                                                        <td className="px-2 py-2 font-semibold">{p.name}</td>
+                                                        <td className="px-2 py-2 text-center text-green-600 font-bold">{p.wins}</td>
+                                                        <td className="px-2 py-2 text-center text-red-600 font-bold">{p.losses}</td>
+                                                        <td className="px-2 py-2 text-center text-yellow-600 font-bold">{p.ties}</td>
+                                                        <td className="px-2 py-2 text-center">
+                                                            <span className="bg-purple-600 text-white px-2 py-1 rounded-full font-bold text-xs">
+                                                                {p.points}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -754,7 +817,14 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<YugiohTournament />);
+
+        // Service Worker para funcionar offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('data:text/javascript;base64,Y29uc3QgQ0FDSEVfTkFNRSA9ICd5dWdpb2gtdjEnOwpjb25zdCB1cmxzVG9DYWNoZSA9IFsnLi8nLCAnLi9pbmRleC5odG1sJ107CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignaW5zdGFsbCcsIGUgPT4gZS53YWl0VW50aWwoY2FjaGVzLm9wZW4oQ0FDSEVfTkFNRSkudGhlbihjID0+IGMuYWRkQWxsKHVybHNUb0NhY2hlKSkpKTsKc2VsZi5hZGRFdmVudExpc3RlbmVyKCdmZXRjaCcsIGUgPT4gZS5yZXNwb25kV2l0aChjYWNoZXMubWF0Y2goZS5yZXF1ZXN0KS50aGVuKHIgPT4gciB8fCBmZXRjaChlLnJlcXVlc3QpKSkpOw==')
+                    .catch(() => console.log('SW no disponible'));
+            });
+        }
     </script>
 </body>
-
 </html>

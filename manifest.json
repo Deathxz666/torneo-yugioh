@@ -5,8 +5,8 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreem",
-  "background_color": "#7C3AED",
-  "theme_color": "#7C3AED",
+  "background_color": "#581c87",
+  "theme_color": "#581c87",
   "orientation": "portrait-primary",
   "icons": [
     {

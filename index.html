@@ -304,7 +304,7 @@
 
             function completeRound() {
                 if (!activeTournament) return;
-                const round = activeTournament.rounds[activeTournament.currentRoundIndex];
+                const round = activeTournament.rounds[activeTournament.currentRound Index];
                 
                 if (!round.matches.every(m => m.result !== null)) {
                     alert('Completa todos los duelos');
@@ -835,11 +835,12 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<YugiohTournament />);
 
-        // Service Worker para funcionar offline
+        // Service Worker para funcionar 100% offline
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('data:text/javascript;base64,Y29uc3QgQ0FDSEVfTkFNRSA9ICd5dWdpb2gtdjEnOwpjb25zdCB1cmxzVG9DYWNoZSA9IFsnLi8nLCAnLi9pbmRleC5odG1sJ107CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignaW5zdGFsbCcsIGUgPT4gZS53YWl0VW50aWwoY2FjaGVzLm9wZW4oQ0FDSEVfTkFNRSkudGhlbihjID0+IGMuYWRkQWxsKHVybHNUb0NhY2hlKSkpKTsKc2VsZi5hZGRFdmVudExpc3RlbmVyKCdmZXRjaCcsIGUgPT4gZS5yZXNwb25kV2l0aChjYWNoZXMubWF0Y2goZS5yZXF1ZXN0KS50aGVuKHIgPT4gciB8fCBmZXRjaChlLnJlcXVlc3QpKSkpOw==')
-                    .catch(() => console.log('SW no disponible'));
+                navigator.serviceWorker.register('/torneo-yugioh/sw.js')
+                    .then(reg => console.log('SW registrado'))
+                    .catch(err => console.log('SW error:', err));
             });
         }
     </script>

@@ -1,13 +1,15 @@
 {
   "name": "Gestor de Torneos Yu-Gi-Oh!",
   "short_name": "Torneo YGO",
-  "description": "Aplicación para gestionar torneos de Yu-Gi-Oh!",
+  "description": "Aplicación para gestionar torneos de Yu-Gi-Oh! con seguimiento de puntuaciones y rondas",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#581c87",
   "theme_color": "#581c87",
   "orientation": "portrait-primary",
+  "categories": ["games", "entertainment"],
+  "lang": "es",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/deathxz666/torneo-yugioh/main/icon-192.png",

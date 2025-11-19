@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Torneos Yu-Gi-Oh!</title>
+    <!-- NUEVO: Manifest para PWA -->
+    <link rel="manifest" href="./manifest.json">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -33,6 +35,14 @@
             height: 100vh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+        }
+        
+        /* NUEVO: Estilos para modo standalone */
+        @media all and (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
         }
     </style>
 </head>
@@ -68,7 +78,15 @@
             const [newPlayerName, setNewPlayerName] = useState('');
             const [activeTab, setActiveTab] = useState('clasificacion');
 
+            // NUEVO: Detectar si es PWA
+            const [isStandalone, setIsStandalone] = useState(false);
+
             useEffect(() => {
+                // Detectar si la app está instalada como PWA
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    setIsStandalone(true);
+                }
+                
                 const saved = localStorage.getItem('yugioh-tournaments');
                 if (saved) {
                     setTournaments(JSON.parse(saved));
@@ -97,9 +115,7 @@
             }
 
             function deleteTournament(id) {
-                console.log('Intentando eliminar torneo:', id);
                 if (!window.confirm('¿Eliminar este torneo?')) return;
-                console.log('Confirmado, eliminando...');
                 setTournaments(tournaments.filter(t => t.id !== id));
                 if (activeTournamentId === id) {
                     setActiveTournamentId(null);
@@ -128,7 +144,6 @@
             }
 
             function deletePlayer(pid) {
-                console.log('Intentando eliminar jugador:', pid);
                 if (!window.confirm('¿Eliminar este jugador?')) return;
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
@@ -293,9 +308,7 @@
             }
 
             function deleteRound(ri) {
-                console.log('Intentando eliminar ronda:', ri);
                 if (!window.confirm('¿Eliminar esta ronda?')) return;
-                console.log('Confirmado, eliminando ronda...');
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
                     
@@ -378,6 +391,10 @@
                                 <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
                                     Torneos Yu-Gi-Oh!
                                 </h1>
+                                {/* NUEVO: Indicador de app instalada */}
+                                {isStandalone && (
+                                    <p className="text-green-600 text-sm text-center">✓ Aplicación instalada</p>
+                                )}
                             </div>
 
                             {/* Sección Mis Torneos */}
@@ -789,19 +806,44 @@
             console.error('Error:', error);
         }
     </script>
+
+    <!-- NUEVO: Scripts mejorados para PWA -->
     <script>
-    // Registrar Service Worker para funcionamiento offline
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./sw.js')
-          .then(function(registration) {
-            console.log('ServiceWorker registrado con éxito: ', registration.scope);
-          })
-          .catch(function(error) {
-            console.log('Error registrando ServiceWorker: ', error);
-          });
-      });
-    }
+        // Service Worker para funcionamiento offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('✅ ServiceWorker registrado correctamente para funcionamiento offline');
+                    })
+                    .catch(function(error) {
+                        console.log('❌ Error en ServiceWorker:', error);
+                    });
+            });
+        }
+
+        // Prevenir comportamientos no deseados en móviles
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Manejar estado online/offline
+        window.addEventListener('online', function() {
+            console.log('📶 Aplicación conectada');
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('📵 Aplicación funcionando offline - Los datos se guardan localmente');
+        });
+
+        // Prevenir que la app se cierre accidentalmente
+        window.addEventListener('beforeunload', function(e) {
+            if (localStorage.getItem('yugioh-tournaments')) {
+                e.returnValue = '¿Estás seguro de que quieres salir? Tus datos están guardados localmente.';
+            }
+        });
     </script>
 </body>
 </html>

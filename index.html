@@ -47,43 +47,43 @@
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
         );
-
+        
         const Trash2 = ({ className }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
         );
-
+        
         const Plus = ({ className }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
         );
-
+        
         const ArrowLeft = ({ className }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
         );
-
+        
         function YugiohTournament() {
             const [tournaments, setTournaments] = useState([]);
             const [activeTournamentId, setActiveTournamentId] = useState(null);
             const [view, setView] = useState('list');
-
+        
             useEffect(() => {
                 const saved = localStorage.getItem('yugioh-tournaments');
                 if (saved) {
                     setTournaments(JSON.parse(saved));
                 }
             }, []);
-
+        
             useEffect(() => {
                 localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
             }, [tournaments]);
-
+        
             const activeTournament = tournaments.find(t => t.id === activeTournamentId);
-
+        
             function createTournament(name) {
                 if (!name.trim()) return;
                 const newT = {
@@ -97,7 +97,7 @@
                 setActiveTournamentId(newT.id);
                 setView('standings');
             }
-
+        
             function deleteTournament(id) {
                 if (!window.confirm('¿Eliminar este torneo?')) return;
                 setTournaments(tournaments.filter(t => t.id !== id));
@@ -106,7 +106,7 @@
                     setView('list');
                 }
             }
-
+        
             function addPlayer(name) {
                 if (!name.trim() || !activeTournament) return;
                 const newP = {
@@ -125,7 +125,7 @@
                 );
                 setTournaments(updated);
             }
-
+        
             function deletePlayer(pid) {
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
@@ -134,25 +134,25 @@
                 );
                 setTournaments(updated);
             }
-
+        
             function generateRound() {
                 if (!activeTournament || activeTournament.players.length < 1) {
                     alert('Necesitas al menos 1 jugador');
                     return;
                 }
-
+        
                 const sorted = [...activeTournament.players].sort((a, b) => {
                     if (b.points !== a.points) return b.points - a.points;
                     if (b.wins !== a.wins) return b.wins - a.wins;
                     return a.losses - b.losses;
                 });
-
+        
                 const matches = [];
                 const used = new Set();
-
+        
                 for (let i = 0; i < sorted.length; i++) {
                     if (used.has(sorted[i].id)) continue;
-
+        
                     let opp = null;
                     for (let j = i + 1; j < sorted.length; j++) {
                         if (!used.has(sorted[j].id) && !sorted[i].opponents.includes(sorted[j].id)) {
@@ -160,7 +160,7 @@
                             break;
                         }
                     }
-
+        
                     if (!opp) {
                         for (let j = i + 1; j < sorted.length; j++) {
                             if (!used.has(sorted[j].id)) {
@@ -169,7 +169,7 @@
                             }
                         }
                     }
-
+        
                     if (opp) {
                         matches.push({
                             id: Date.now() + i,
@@ -191,13 +191,13 @@
                         used.add(sorted[i].id);
                     }
                 }
-
+        
                 const newR = {
                     number: activeTournament.rounds.length + 1,
                     matches: matches,
                     completed: false
                 };
-
+        
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId 
                         ? { ...t, rounds: [...t.rounds, newR], currentRoundIndex: t.rounds.length }
@@ -206,7 +206,7 @@
                 setTournaments(updated);
                 setView('rounds');
             }
-
+        
             function setResult(mi, res, pts) {
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
@@ -219,7 +219,7 @@
                 });
                 setTournaments(updated);
             }
-
+        
             function setByePoints(mi, pts) {
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
@@ -229,7 +229,7 @@
                 });
                 setTournaments(updated);
             }
-
+        
             function completeRound() {
                 if (!activeTournament) return;
                 const round = activeTournament.rounds[activeTournament.currentRoundIndex];
@@ -238,7 +238,7 @@
                     alert('Completa todos los duelos');
                     return;
                 }
-
+        
                 const updated = tournaments.map(t => {
                     if (t.id !== activeTournamentId) return t;
                     
@@ -257,7 +257,7 @@
                             if (p1 && p2) {
                                 if (!p1.opponents.includes(p2.id)) p1.opponents.push(p2.id);
                                 if (!p2.opponents.includes(p1.id)) p2.opponents.push(p1.id);
-
+        
                                 if (m.result === 'p1') {
                                     p1.points += 3;
                                     p1.wins += 1;
@@ -275,15 +275,15 @@
                             }
                         }
                     });
-
+        
                     const newR = [...t.rounds];
                     newR[t.currentRoundIndex].completed = true;
-
+        
                     return { ...t, players: newP, rounds: newR };
                 });
                 setTournaments(updated);
             }
-
+        
             function deleteRound(ri) {
                 if (!window.confirm('¿Eliminar esta ronda?')) return;
                 
@@ -292,7 +292,7 @@
                     
                     const round = t.rounds[ri];
                     let newP = [...t.players];
-
+        
                     if (round.completed) {
                         round.matches.forEach(m => {
                             if (m.result === 'bye') {
@@ -308,7 +308,7 @@
                                 if (p1 && p2) {
                                     p1.opponents = p1.opponents.filter(id => id !== p2.id);
                                     p2.opponents = p2.opponents.filter(id => id !== p1.id);
-
+        
                                     if (m.result === 'p1') {
                                         p1.points -= 3;
                                         p1.wins -= 1;
@@ -327,7 +327,7 @@
                             }
                         });
                     }
-
+        
                     const newR = t.rounds.filter((r, i) => i !== ri);
                     let newI = t.currentRoundIndex;
                     if (newI >= newR.length && newR.length > 0) {
@@ -335,30 +335,30 @@
                     } else if (newR.length === 0) {
                         newI = 0;
                     }
-
+        
                     return { ...t, players: newP, rounds: newR, currentRoundIndex: newI };
                 });
                 setTournaments(updated);
             }
-
+        
             function changeRound(i) {
                 const updated = tournaments.map(t => 
                     t.id === activeTournamentId ? { ...t, currentRoundIndex: i } : t
                 );
                 setTournaments(updated);
             }
-
+        
             const sortedPlayers = activeTournament ? [...activeTournament.players].sort((a, b) => {
                 if (b.points !== a.points) return b.points - a.points;
                 if (b.wins !== a.wins) return b.wins - a.wins;
                 return a.losses - b.losses;
             }) : [];
-
+        
             const canGenerate = activeTournament && (
                 activeTournament.rounds.length === 0 || 
                 activeTournament.rounds[activeTournament.rounds.length - 1].completed
             );
-
+        
             if (!activeTournamentId || view === 'list') {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
@@ -370,10 +370,10 @@
                                     <Trophy className="w-8 h-8 text-purple-900" />
                                 </div>
                             </div>
-
+        
                             <div className="bg-white rounded-xl shadow-xl p-4">
                                 <h2 className="text-xl font-bold text-purple-900 mb-3">Mis Torneos</h2>
-
+        
                                 <div className="flex gap-2 mb-4">
                                     <input
                                         id="tournamentName"
@@ -398,7 +398,7 @@
                                         <Plus className="w-5 h-5 inline" />
                                     </button>
                                 </div>
-
+        
                                 {tournaments.length === 0 ? (
                                     <div className="text-center py-8">
                                         <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -438,7 +438,7 @@
                     </div>
                 );
             }
-
+        
             if (view === 'standings' && activeTournament) {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
@@ -450,11 +450,11 @@
                                 <ArrowLeft className="w-5 h-5" />
                                 Atrás
                             </button>
-
+        
                             <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
                                 <h1 className="text-2xl font-bold text-purple-900 text-center">{activeTournament.name}</h1>
                             </div>
-
+        
                             <div className="bg-white rounded-xl shadow-xl p-4">
                                 <h2 className="text-xl font-bold text-purple-900 mb-3">Añadir Jugador</h2>
                                 <div className="flex gap-2 mb-4">
@@ -481,7 +481,7 @@
                                         <Plus className="w-5 h-5" />
                                     </button>
                                 </div>
-
+        
                                 <h2 className="text-lg font-bold text-purple-900 mb-3">Ranking</h2>
                                 {sortedPlayers.length === 0 ? (
                                     <p className="text-gray-500 text-center py-4">Sin jugadores aún</p>
@@ -503,7 +503,7 @@
                                         ))}
                                     </div>
                                 )}
-
+        
                                 <button
                                     onClick={generateRound}
                                     disabled={!canGenerate || sortedPlayers.length === 0}
@@ -516,10 +516,10 @@
                     </div>
                 );
             }
-
+        
             if (view === 'rounds' && activeTournament) {
                 const currentRound = activeTournament.rounds[activeTournament.currentRoundIndex];
-
+        
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
                         <div className="max-w-4xl mx-auto">
@@ -530,11 +530,11 @@
                                 <ArrowLeft className="w-5 h-5" />
                                 Atrás
                             </button>
-
+        
                             <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
                                 <h1 className="text-2xl font-bold text-purple-900 text-center">Ronda {currentRound.number}</h1>
                             </div>
-
+        
                             <div className="bg-white rounded-xl shadow-xl p-4">
                                 <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                                     {activeTournament.rounds.map((r, i) => (
@@ -551,7 +551,7 @@
                                         </button>
                                     ))}
                                 </div>
-
+        
                                 <div className="space-y-3 mb-4">
                                     {currentRound.matches.map((m, mi) => (
                                         <div key={m.id} className="bg-purple-100 p-4 rounded-lg border-2 border-purple-300">
@@ -607,10 +607,30 @@
                                                             />
                                                         </div>
                                                     )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-center mb-3">
+                                                        <p className="font-bold text-purple-900">{m.p1.name}</p>
+                                                        <p className="text-sm text-gray-600">BYE (Libre)</p>
+                                                    </div>
+                                                    <div className="flex gap-2 items-center">
+                                                        <label className="text-xs font-semibold text-purple-900">Puntos:</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="3"
+                                                            value={m.byePoints}
+                                                            onChange={(e) => setByePoints(mi, parseInt(e.target.value) || 3)}
+                                                            className="flex-1 px-2 py-1 border-2 border-purple-300 rounded text-sm"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
-
+        
                                 {!currentRound.completed ? (
                                     <button
                                         onClick={completeRound}
@@ -633,7 +653,7 @@
                                         )}
                                     </div>
                                 )}
-
+        
                                 {activeTournament.rounds.length > 1 && (
                                     <button
                                         onClick={() => deleteRound(activeTournament.currentRoundIndex)}
@@ -647,16 +667,17 @@
                     </div>
                 );
             }
-
+        
             return <div className="text-white p-4">Cargando...</div>;
         }
-
+        
         try {
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<YugiohTournament />);
         } catch (error) {
             console.error('Error:', error);
-        }
+        }    
     </script>
 </body>
 </html>                                       
+

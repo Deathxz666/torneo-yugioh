@@ -659,24 +659,4 @@
         }
     </script>
 </body>
-</html>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="text-center mb-3">
-                                                        <p className="font-bold text-purple-900">{m.p1.name}</p>
-                                                        <p className="text-sm text-gray-600">BYE (Libre)</p>
-                                                    </div>
-                                                    <div className="flex gap-2 items-center">
-                                                        <label className="text-xs font-semibold text-purple-900">Puntos:</label>
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max="3"
-                                                            value={m.byePoints}
-                                                            onChange={(e) => setByePoints(mi, parseInt(e.target.value) || 3)}
-                                                            className="flex-1 px-2 py-1 border-2 border-purple-300 rounded text-sm"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
+</html>                                       

@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Torneo Yu-Gi-Oh!</title>
-    <link rel="manifest" href="manifest.json">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -35,20 +34,10 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: white;
-            font-size: 24px;
-        }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div class="loading">Cargando...</div>
-    </div>
+    <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -71,43 +60,6 @@
             </svg>
         );
 
-        const Users = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-        );
-
-        const Medal = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        );
-
-        const Swords = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-        );
-
-        const Play = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-        );
-
-        const X = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        );
-
-        const ChevronRight = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-        );
-
         const ArrowLeft = ({ className }) => (
             <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -120,22 +72,14 @@
             const [view, setView] = useState('list');
 
             useEffect(() => {
-                try {
-                    const saved = localStorage.getItem('yugioh-tournaments');
-                    if (saved) {
-                        setTournaments(JSON.parse(saved));
-                    }
-                } catch (e) {
-                    console.error('Error cargando:', e);
+                const saved = localStorage.getItem('yugioh-tournaments');
+                if (saved) {
+                    setTournaments(JSON.parse(saved));
                 }
             }, []);
 
             useEffect(() => {
-                try {
-                    localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
-                } catch (e) {
-                    console.error('Error guardando:', e);
-                }
+                localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
             }, [tournaments]);
 
             const activeTournament = tournaments.find(t => t.id === activeTournamentId);
@@ -154,7 +98,7 @@
                 setView('standings');
             }
 
-            function deleteTournamentDirect(id) {
+            function deleteTournament(id) {
                 if (!window.confirm('¿Eliminar este torneo?')) return;
                 setTournaments(tournaments.filter(t => t.id !== id));
                 if (activeTournamentId === id) {
@@ -192,8 +136,8 @@
             }
 
             function generateRound() {
-                if (!activeTournament || activeTournament.players.length < 2) {
-                    alert('Necesitas al menos 2 jugadores');
+                if (!activeTournament || activeTournament.players.length < 1) {
+                    alert('Necesitas al menos 1 jugador');
                     return;
                 }
 
@@ -340,7 +284,7 @@
                 setTournaments(updated);
             }
 
-            function deleteRoundDirect(ri) {
+            function deleteRound(ri) {
                 if (!window.confirm('¿Eliminar esta ronda?')) return;
                 
                 const updated = tournaments.map(t => {
@@ -417,7 +361,7 @@
 
             if (!activeTournamentId || view === 'list') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3">
+                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
                         <div className="max-w-4xl mx-auto">
                             <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
                                 <div className="flex items-center justify-center gap-2">
@@ -427,7 +371,7 @@
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-xl shadow-xl p-4 mb-20">
+                            <div className="bg-white rounded-xl shadow-xl p-4">
                                 <h2 className="text-xl font-bold text-purple-900 mb-3">Mis Torneos</h2>
 
                                 <div className="flex gap-2 mb-4">
@@ -449,7 +393,7 @@
                                             createTournament(input.value);
                                             input.value = '';
                                         }}
-                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold"
+                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700"
                                     >
                                         <Plus className="w-5 h-5 inline" />
                                     </button>
@@ -470,7 +414,7 @@
                                                         <p className="text-sm text-gray-600">{t.players.length} jugadores • {t.rounds.length} rondas</p>
                                                     </div>
                                                     <button
-                                                        onClick={() => deleteTournamentDirect(t.id)}
+                                                        onClick={() => deleteTournament(t.id)}
                                                         className="text-red-600 hover:bg-red-100 p-2 rounded h-10"
                                                     >
                                                         <Trash2 className="w-5 h-5" />
@@ -481,7 +425,7 @@
                                                         setActiveTournamentId(t.id);
                                                         setView('standings');
                                                     }}
-                                                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold"
+                                                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700"
                                                 >
                                                     Abrir
                                                 </button>
@@ -495,16 +439,244 @@
                 );
             }
 
-            return <div className="text-white p-4">Vista del torneo (simplificado para debug)</div>;
+            if (view === 'standings' && activeTournament) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
+                        <div className="max-w-4xl mx-auto">
+                            <button
+                                onClick={() => setView('list')}
+                                className="flex items-center gap-2 text-white mb-3 hover:bg-white/20 px-3 py-2 rounded-lg"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                                Atrás
+                            </button>
+
+                            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
+                                <h1 className="text-2xl font-bold text-purple-900 text-center">{activeTournament.name}</h1>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-xl p-4">
+                                <h2 className="text-xl font-bold text-purple-900 mb-3">Añadir Jugador</h2>
+                                <div className="flex gap-2 mb-4">
+                                    <input
+                                        id="playerName"
+                                        type="text"
+                                        placeholder="Nombre del jugador"
+                                        className="flex-1 px-3 py-2 border-2 border-purple-300 rounded-lg text-base"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                addPlayer(e.target.value);
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const input = document.getElementById('playerName');
+                                            addPlayer(input.value);
+                                            input.value = '';
+                                        }}
+                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <h2 className="text-lg font-bold text-purple-900 mb-3">Ranking</h2>
+                                {sortedPlayers.length === 0 ? (
+                                    <p className="text-gray-500 text-center py-4">Sin jugadores aún</p>
+                                ) : (
+                                    <div className="space-y-2 mb-4">
+                                        {sortedPlayers.map((p, i) => (
+                                            <div key={p.id} className="bg-purple-100 p-3 rounded-lg border-2 border-purple-300 flex justify-between items-center">
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-purple-900">#{i+1} {p.name}</p>
+                                                    <p className="text-sm text-gray-600">{p.points}pts • W:{p.wins} L:{p.losses} T:{p.ties}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => deletePlayer(p.id)}
+                                                    className="text-red-600 hover:bg-red-100 p-2 rounded"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={generateRound}
+                                    disabled={!canGenerate || sortedPlayers.length === 0}
+                                    className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 disabled:bg-gray-400"
+                                >
+                                    Generar Ronda {activeTournament.rounds.length + 1}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'rounds' && activeTournament) {
+                const currentRound = activeTournament.rounds[activeTournament.currentRoundIndex];
+
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-3 pb-20">
+                        <div className="max-w-4xl mx-auto">
+                            <button
+                                onClick={() => setView('standings')}
+                                className="flex items-center gap-2 text-white mb-3 hover:bg-white/20 px-3 py-2 rounded-lg"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                                Atrás
+                            </button>
+
+                            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl shadow-2xl p-4 mb-4 border-4 border-yellow-300">
+                                <h1 className="text-2xl font-bold text-purple-900 text-center">Ronda {currentRound.number}</h1>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-xl p-4">
+                                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                                    {activeTournament.rounds.map((r, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => changeRound(i)}
+                                            className={`px-3 py-2 rounded-lg font-semibold whitespace-nowrap ${
+                                                i === activeTournament.currentRoundIndex
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-purple-100 text-purple-900'
+                                            }`}
+                                        >
+                                            R{r.number} {r.completed && '✓'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-3 mb-4">
+                                    {currentRound.matches.map((m, mi) => (
+                                        <div key={m.id} className="bg-purple-100 p-4 rounded-lg border-2 border-purple-300">
+                                            {m.p2 ? (
+                                                <>
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="font-bold text-purple-900 text-sm">{m.p1.name}</span>
+                                                        <span className="text-xs text-gray-600">vs</span>
+                                                        <span className="font-bold text-purple-900 text-sm">{m.p2.name}</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setResult(mi, 'p1', 0)}
+                                                            className={`flex-1 py-2 rounded font-semibold text-sm ${
+                                                                m.result === 'p1'
+                                                                    ? 'bg-green-600 text-white'
+                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                            }`}
+                                                        >
+                                                            {m.p1.name.split(' ')[0]}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setResult(mi, 'tie', 1)}
+                                                            className={`flex-1 py-2 rounded font-semibold text-sm ${
+                                                                m.result === 'tie'
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                            }`}
+                                                        >
+                                                            Empate
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setResult(mi, 'p2', 0)}
+                                                            className={`flex-1 py-2 rounded font-semibold text-sm ${
+                                                                m.result === 'p2'
+                                                                    ? 'bg-green-600 text-white'
+                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                            }`}
+                                                        >
+                                                            {m.p2.name.split(' ')[0]}
+                                                        </button>
+                                                    </div>
+                                                    {m.result === 'tie' && (
+                                                        <div className="mt-2 flex gap-2 items-center">
+                                                            <label className="text-xs font-semibold text-purple-900">Pts:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="3"
+                                                                value={m.tiePoints}
+                                                                onChange={(e) => setResult(mi, 'tie', parseInt(e.target.value) || 1)}
+                                                                className="w-12 px-2 py-1 border-2 border-purple-300 rounded text-sm"
+                                                            />
+                                                        </div>
+                                                    )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {!currentRound.completed ? (
+                                    <button
+                                        onClick={completeRound}
+                                        className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700"
+                                    >
+                                        Completar Ronda
+                                    </button>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <div className="bg-green-100 border-2 border-green-300 text-green-800 p-3 rounded-lg text-center font-bold">
+                                            ✓ Ronda Completada
+                                        </div>
+                                        {activeTournament.currentRoundIndex < activeTournament.rounds.length - 1 && (
+                                            <button
+                                                onClick={() => changeRound(activeTournament.currentRoundIndex + 1)}
+                                                className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
+                                            >
+                                                Siguiente Ronda
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTournament.rounds.length > 1 && (
+                                    <button
+                                        onClick={() => deleteRound(activeTournament.currentRoundIndex)}
+                                        className="w-full mt-2 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700"
+                                    >
+                                        Eliminar Ronda
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return <div className="text-white p-4">Cargando...</div>;
         }
 
         try {
             const root = ReactDOM.createRoot(document.getElementById('root'));
             root.render(<YugiohTournament />);
         } catch (error) {
-            document.getElementById('root').innerHTML = '<div class="loading">Error: ' + error.message + '</div>';
             console.error('Error:', error);
         }
     </script>
 </body>
 </html>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-center mb-3">
+                                                        <p className="font-bold text-purple-900">{m.p1.name}</p>
+                                                        <p className="text-sm text-gray-600">BYE (Libre)</p>
+                                                    </div>
+                                                    <div className="flex gap-2 items-center">
+                                                        <label className="text-xs font-semibold text-purple-900">Puntos:</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="3"
+                                                            value={m.byePoints}
+                                                            onChange={(e) => setByePoints(mi, parseInt(e.target.value) || 3)}
+                                                            className="flex-1 px-2 py-1 border-2 border-purple-300 rounded text-sm"
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}

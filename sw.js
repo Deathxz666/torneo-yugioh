@@ -1,5 +1,4 @@
-// sw.js
-const CACHE_NAME = 'yugioh-tournament-v1';
+const CACHE_NAME = 'yugioh-tournament-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -10,6 +9,7 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
+        console.log('📦 Cache abierto');
         return cache.addAll(urlsToCache);
       })
   );

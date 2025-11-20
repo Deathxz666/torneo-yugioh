@@ -6,25 +6,48 @@
     <meta name="theme-color" content="#581c87">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Torneos YGO">
+    
+    <!-- Meta tags para PWA avanzada -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Torneos YGO">
+    <meta name="msapplication-TileColor" content="#581c87">
+    <meta name="msapplication-tap-highlight" content="no">
+    
     <title>Torneos Yu-Gi-Oh!</title>
     <link rel="manifest" href="./manifest.json">
+    
+    <!-- Preload de recursos críticos -->
+    <link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script">
+    <link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" as="script">
+    <link rel="preload" href="https://unpkg.com/@babel/standalone/babel.min.js" as="script">
+    
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        * { -webkit-tap-highlight-color: transparent; }
+        * { 
+            -webkit-tap-highlight-color: transparent; 
+            box-sizing: border-box;
+        }
         html, body { 
             margin: 0; 
             padding: 0; 
             height: 100%; 
             overflow: hidden;
             background: #f8fafc;
+            position: fixed;
+            width: 100%;
         }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             -webkit-user-select: none;
             user-select: none;
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         input, textarea {
             -webkit-user-select: text;
@@ -36,20 +59,37 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Mejoras para móviles */
+        /* Ocultar barras de scroll */
+        #root::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Mejoras para modo standalone completo */
         @media all and (display-mode: standalone) {
             body {
                 padding-top: env(safe-area-inset-top);
                 padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+            
+            #root {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
             }
         }
         
-        /* Scroll suave */
+        /* Prevenir zoom en inputs */
+        @media screen and (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+        
         .scroll-smooth {
             scroll-behavior: smooth;
         }
         
-        /* Mejor contraste para botones */
         .btn-primary {
             background: #2563eb;
             color: white;
@@ -79,11 +119,167 @@
         .btn-success:hover {
             background: #15803d;
         }
+        
+        /* Pantalla de carga offline */
+        .offline-loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .offline-loader.show {
+            display: flex;
+        }
+        
+        .loader-spinner {
+            animation: spin 1s linear infinite;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <!-- Pantalla de carga para offline -->
+    <div id="offlineLoader" class="offline-loader">
+        <div class="text-center">
+            <div class="loader-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 font-medium">Torneos Yu-Gi-Oh!</p>
+            <p class="text-gray-500 text-sm mt-2">Cargando...</p>
+        </div>
+    </div>
+
     <div id="root"></div>
 
+    <!-- Script de inicialización MEJORADO -->
+    <script>
+        // Mostrar loader inmediatamente
+        document.getElementById('offlineLoader').classList.add('show');
+        
+        // Función para verificar recursos cargados
+        function checkResourcesLoaded() {
+            const resources = [
+                window.React,
+                window.ReactDOM,
+                window.Babel
+            ];
+            
+            return resources.every(resource => resource !== undefined);
+        }
+        
+        // Intentar cargar desde cache primero
+        function initializeApp() {
+            if (checkResourcesLoaded()) {
+                document.getElementById('offlineLoader').classList.remove('show');
+                console.log('✅ Aplicación cargada desde cache');
+            } else {
+                setTimeout(() => {
+                    if (checkResourcesLoaded()) {
+                        document.getElementById('offlineLoader').classList.remove('show');
+                        console.log('✅ Aplicación cargada después de reintento');
+                    } else {
+                        loadFallbackResources();
+                    }
+                }, 1000);
+            }
+        }
+        
+        // Fallback para cargar recursos dinámicamente
+        function loadFallbackResources() {
+            console.log('🔄 Cargando recursos de forma dinámica...');
+            document.getElementById('offlineLoader').classList.remove('show');
+            console.log('✅ Aplicación inicializada con fallback');
+        }
+        
+        // Service Worker MEJORADO para offline completo
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('✅ ServiceWorker registrado correctamente:', registration.scope);
+                        
+                        if (window.matchMedia('(display-mode: standalone)').matches) {
+                            console.log('📱 Aplicación ejecutándose en modo standalone');
+                            document.title = 'Torneos YGO';
+                        }
+                        
+                        setTimeout(initializeApp, 500);
+                    })
+                    .catch(function(error) {
+                        console.log('❌ Error en ServiceWorker:', error);
+                        setTimeout(initializeApp, 500);
+                    });
+            });
+        } else {
+            setTimeout(initializeApp, 500);
+        }
+        
+        // Prevenir comportamientos no deseados
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Prevenir gestos de zoom
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gesturechange', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gestureend', function(e) {
+            e.preventDefault();
+        });
+        
+        // Manejar estado online/offline
+        window.addEventListener('online', function() {
+            console.log('📶 Aplicación conectada');
+        });
+        
+        window.addEventListener('offline', function() {
+            console.log('📵 Aplicación funcionando offline');
+        });
+        
+        // Prevenir que se muestre la barra de URL
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.scrollTo(0, 1);
+            }, 0);
+            
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+        });
+        
+        // Detectar y prevenir la barra de dirección en iOS
+        if (/(iPhone|iPad|iPod)/i.test(navigator.userAgent)) {
+            document.addEventListener('touchstart', function() {
+                setTimeout(function() {
+                    window.scrollTo(0, 0);
+                }, 100);
+            });
+        }
+    </script>
+
+    <!-- CÓDIGO REACT COMPLETO -->
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -831,37 +1027,6 @@
         } catch (error) {
             console.error('Error:', error);
         }
-    </script>
-
-    <script>
-        // Service Worker para funcionamiento offline
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(function(registration) {
-                        console.log('✅ ServiceWorker registrado correctamente');
-                    })
-                    .catch(function(error) {
-                        console.log('❌ Error en ServiceWorker:', error);
-                    });
-            });
-        }
-
-        // Prevenir comportamientos no deseados en móviles
-        document.addEventListener('touchmove', function(e) {
-            if (e.scale !== 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        // Manejar estado online/offline
-        window.addEventListener('online', function() {
-            console.log('📶 Aplicación conectada');
-        });
-
-        window.addEventListener('offline', function() {
-            console.log('📵 Aplicación funcionando offline');
-        });
     </script>
 </body>
 </html>

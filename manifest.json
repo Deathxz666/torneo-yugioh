@@ -10,6 +10,8 @@
   "orientation": "portrait-primary",
   "categories": ["games", "entertainment"],
   "lang": "es",
+  "prefer_related_applications": false,
+  
   "icons": [
     {
       "src": "icon-192.png",
@@ -22,6 +24,21 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshot-narrow.png", 
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

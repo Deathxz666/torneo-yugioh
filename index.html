@@ -15,7 +15,7 @@
     <meta name="msapplication-tap-highlight" content="no">
     
     <title>Torneos Yu-Gi-Oh!</title>
-    <link rel="manifest" href="/torneo-yugioh/manifest.json" crossorigin="use-credentials">
+    <link rel="manifest" href="./manifest.json" crossorigin="use-credentials">
     
     <!-- Preload de recursos críticos -->
     <link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script">
@@ -38,8 +38,6 @@
             height: 100%; 
             overflow: hidden;
             background: #f8fafc;
-            position: fixed;
-            width: 100%;
         }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -47,7 +45,7 @@
             user-select: none;
             height: 100vh;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            -webkit-overflow-scrolling: touch; /* Scroll suave iOS */
         }
         input, textarea {
             -webkit-user-select: text;
@@ -59,9 +57,51 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Ocultar barras de scroll */
-        #root::-webkit-scrollbar {
-            display: none;
+        /* MEJORA CRÍTICA: Scroll mejorado */
+        .scroll-improved {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+        
+        /* Alturas específicas para cada sección */
+        .tournament-list {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .players-list {
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+        
+        .classification-table {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        
+        .rounds-table {
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+        
+        /* Ocultar barras de scroll feas */
+        .scroll-improved::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scroll-improved::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .scroll-improved::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .scroll-improved::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         /* Mejoras para modo standalone completo */
@@ -72,11 +112,6 @@
                 padding-left: env(safe-area-inset-left);
                 padding-right: env(safe-area-inset-right);
             }
-            
-            #root {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
         }
         
         /* Prevenir zoom en inputs */
@@ -84,10 +119,6 @@
             input, select, textarea {
                 font-size: 16px !important;
             }
-        }
-        
-        .scroll-smooth {
-            scroll-behavior: smooth;
         }
         
         .btn-primary {
@@ -152,6 +183,26 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Indicador de scroll para móviles */
+        .scroll-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+            40% {transform: translateY(-10px) translateX(-50%);}
+            60% {transform: translateY(-5px) translateX(-50%);}
+        }
     </style>
 </head>
 <body>
@@ -160,7 +211,7 @@
         <div class="text-center">
             <div class="loader-spinner mx-auto mb-4"></div>
             <p class="text-gray-600 font-medium">Torneos Yu-Gi-Oh!</p>
-            <p class="text-gray-500 text-sm mt-2">Cargando...</p>
+            <p class="text-gray-500 text-sm mt-2">Cargando aplicación offline...</p>
         </div>
     </div>
 
@@ -171,83 +222,46 @@
         // Mostrar loader inmediatamente
         document.getElementById('offlineLoader').classList.add('show');
         
-        // Función para verificar recursos cargados
-        function checkResourcesLoaded() {
-            const resources = [
-                window.React,
-                window.ReactDOM,
-                window.Babel
-            ];
-            
-            return resources.every(resource => resource !== undefined);
-        }
-        
-        // Intentar cargar desde cache primero
-        function initializeApp() {
-            if (checkResourcesLoaded()) {
-                document.getElementById('offlineLoader').classList.remove('show');
-                console.log('✅ Aplicación cargada desde cache');
-            } else {
-                setTimeout(() => {
-                    if (checkResourcesLoaded()) {
-                        document.getElementById('offlineLoader').classList.remove('show');
-                        console.log('✅ Aplicación cargada después de reintento');
-                    } else {
-                        loadFallbackResources();
-                    }
-                }, 1000);
-            }
-        }
-        
-        // Fallback para cargar recursos dinámicamente
-        function loadFallbackResources() {
-            console.log('🔄 Cargando recursos de forma dinámica...');
-            document.getElementById('offlineLoader').classList.remove('show');
-            console.log('✅ Aplicación inicializada con fallback');
-        }
-        
         // Service Worker MEJORADO para offline completo
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
-                        console.log('✅ ServiceWorker registrado correctamente:', registration.scope);
+                        console.log('✅ ServiceWorker registrado correctamente para OFFLINE');
                         
+                        // Verificar si estamos en modo app
                         if (window.matchMedia('(display-mode: standalone)').matches) {
                             console.log('📱 Aplicación ejecutándose en modo standalone');
                             document.title = 'Torneos YGO';
                         }
                         
-                        setTimeout(initializeApp, 500);
+                        // Ocultar loader después de que todo esté listo
+                        setTimeout(function() {
+                            document.getElementById('offlineLoader').classList.remove('show');
+                        }, 2000);
                     })
                     .catch(function(error) {
                         console.log('❌ Error en ServiceWorker:', error);
-                        setTimeout(initializeApp, 500);
+                        // Ocultar loader incluso si falla
+                        setTimeout(function() {
+                            document.getElementById('offlineLoader').classList.remove('show');
+                        }, 2000);
                     });
             });
         } else {
-            setTimeout(initializeApp, 500);
+            // Si no hay Service Worker, ocultar loader
+            setTimeout(function() {
+                document.getElementById('offlineLoader').classList.remove('show');
+            }, 2000);
         }
         
-        // Prevenir comportamientos no deseados
+        // Prevenir comportamientos no deseados pero permitir scroll
         document.addEventListener('touchmove', function(e) {
-            if (e.scale !== 1) {
+            // Solo prevenir zoom, permitir scroll normal
+            if (e.touches.length > 1) {
                 e.preventDefault();
             }
         }, { passive: false });
-        
-        // Prevenir gestos de zoom
-        document.addEventListener('gesturestart', function(e) {
-            e.preventDefault();
-        });
-        
-        document.addEventListener('gesturechange', function(e) {
-            e.preventDefault();
-        });
-        
-        document.addEventListener('gestureend', function(e) {
-            e.preventDefault();
-        });
         
         // Manejar estado online/offline
         window.addEventListener('online', function() {
@@ -255,31 +269,11 @@
         });
         
         window.addEventListener('offline', function() {
-            console.log('📵 Aplicación funcionando offline');
+            console.log('📵 Aplicación funcionando OFFLINE - Modo autónomo');
         });
-        
-        // Prevenir que se muestre la barra de URL
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                window.scrollTo(0, 1);
-            }, 0);
-            
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-            });
-        });
-        
-        // Detectar y prevenir la barra de dirección en iOS
-        if (/(iPhone|iPad|iPod)/i.test(navigator.userAgent)) {
-            document.addEventListener('touchstart', function() {
-                setTimeout(function() {
-                    window.scrollTo(0, 0);
-                }, 100);
-            });
-        }
     </script>
 
-    <!-- CÓDIGO REACT COMPLETO -->
+    <!-- CÓDIGO REACT COMPLETO CON SCROLL MEJORADO -->
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -607,7 +601,7 @@
             // Vista principal - Lista de torneos
             if (view === 'list') {
                 return (
-                    <div className="min-h-screen bg-gray-50 p-3 scroll-smooth">
+                    <div className="min-h-screen bg-gray-50 p-3">
                         <div className="max-w-2xl mx-auto">
                             {/* Header más compacto */}
                             <div className="mb-4">
@@ -616,7 +610,7 @@
                                 </h1>
                             </div>
 
-                            {/* Sección Mis Torneos - más compacta */}
+                            {/* Sección Mis Torneos - con scroll mejorado */}
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
                                 <h2 className="text-md font-bold text-gray-900 mb-3">
                                     Mis Torneos
@@ -644,13 +638,16 @@
                                     </button>
                                 </div>
 
-                                {/* Lista de torneos más compacta */}
+                                {/* Lista de torneos con SCROLL MEJORADO */}
                                 {tournaments.length === 0 ? (
                                     <div className="text-center py-6">
                                         <p className="text-gray-500 text-sm">No hay torneos</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    <div className="tournament-list scroll-improved space-y-2 relative">
+                                        {tournaments.length > 3 && (
+                                            <div className="scroll-hint">Desliza para ver más</div>
+                                        )}
                                         {tournaments.map(t => (
                                             <div key={t.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
                                                 <div className="flex-1 min-w-0">
@@ -691,7 +688,7 @@
                     : null;
 
                 return (
-                    <div className="min-h-screen bg-gray-50 p-3 scroll-smooth">
+                    <div className="min-h-screen bg-gray-50 p-3">
                         <div className="max-w-4xl mx-auto">
                             {/* Botón Atrás más compacto */}
                             <button
@@ -746,14 +743,14 @@
 
                                 {/* Contenido de las pestañas */}
                                 <div className="p-3">
-                                    {/* Pestaña Clasificación - Mejorada */}
+                                    {/* Pestaña Clasificación - con SCROLL MEJORADO */}
                                     {activeTab === 'clasificacion' && (
                                         <div>
                                             <h2 className="text-md font-bold text-gray-900 mb-3">Clasificación</h2>
                                             {sortedPlayers.length === 0 ? (
                                                 <p className="text-gray-500 text-center py-6 text-sm">No hay jugadores</p>
                                             ) : (
-                                                <div className="overflow-x-auto">
+                                                <div className="classification-table scroll-improved">
                                                     <table className="w-full text-xs">
                                                         <thead>
                                                             <tr className="border-b border-gray-200">
@@ -783,7 +780,7 @@
                                         </div>
                                     )}
 
-                                    {/* Pestaña Jugadores - Mejorada */}
+                                    {/* Pestaña Jugadores - con SCROLL MEJORADO */}
                                     {activeTab === 'jugadores' && (
                                         <div>
                                             <h2 className="text-md font-bold text-gray-900 mb-3">Jugadores</h2>
@@ -810,11 +807,14 @@
                                                 </button>
                                             </div>
 
-                                            {/* Lista de jugadores más compacta */}
+                                            {/* Lista de jugadores con SCROLL MEJORADO */}
                                             {activeTournament.players.length === 0 ? (
                                                 <p className="text-gray-500 text-center py-6 text-sm">No hay jugadores</p>
                                             ) : (
-                                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                                <div className="players-list scroll-improved space-y-2 relative">
+                                                    {activeTournament.players.length > 4 && (
+                                                        <div className="scroll-hint">Desliza para ver más</div>
+                                                    )}
                                                     {activeTournament.players.map((p) => (
                                                         <div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
                                                             <div className="flex-1 min-w-0">
@@ -834,7 +834,7 @@
                                         </div>
                                     )}
 
-                                    {/* Pestaña Rondas - Mejorada */}
+                                    {/* Pestaña Rondas - con SCROLL MEJORADO */}
                                     {activeTab === 'rondas' && (
                                         <div>
                                             <div className="flex justify-between items-center mb-3">
@@ -870,7 +870,7 @@
                                                         ))}
                                                     </div>
 
-                                                    {/* Tabla de la ronda actual mejorada */}
+                                                    {/* Tabla de la ronda actual con SCROLL MEJORADO */}
                                                     {currentRound && (
                                                         <div>
                                                             <div className="flex justify-between items-center mb-2">
@@ -884,7 +884,7 @@
                                                                 </button>
                                                             </div>
                                                             
-                                                            <div className="overflow-x-auto">
+                                                            <div className="rounds-table scroll-improved">
                                                                 <table className="w-full text-xs">
                                                                     <thead>
                                                                         <tr className="border-b border-gray-200">

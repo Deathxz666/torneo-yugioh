@@ -1,83 +1,55 @@
-const CACHE_NAME = 'yugioh-tournament-complete-v4';
+const CACHE_NAME = 'yugioh-tournament-v5';
+
 const urlsToCache = [
-  './',
   './index.html',
   './manifest.json',
-  './sw.js',
-  'https://unpkg.com/react@18/umd/react.production.min.js',
-  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-  'https://unpkg.com/@babel/standalone/babel.min.js',
-  'https://cdn.tailwindcss.com'
+  './sw.js'
 ];
 
-// INSTALACIÓN - Cachear todo inmediatamente
-self.addEventListener('install', function(event) {
-  console.log('🔄 Instalando Service Worker OFFLINE...');
+// INSTALL
+self.addEventListener('install', event => {
+  console.log('🔄 Instalando Service Worker...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log('📦 Cacheando recursos para OFFLINE...');
-        return cache.addAll(urlsToCache);
-      })
-      .then(function() {
-        console.log('✅ TODOS los recursos cacheados - App lista para OFFLINE');
-        return self.skipWaiting();
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('📦 Cacheando archivos locales...');
+      return cache.addAll(urlsToCache);
+    }).then(() => self.skipWaiting())
   );
 });
 
-// ACTIVACIÓN - Tomar control inmediato
-self.addEventListener('activate', function(event) {
-  console.log('🎯 Service Worker activado - Modo OFFLINE activo');
+// ACTIVATE
+self.addEventListener('activate', event => {
+  console.log('🎯 Activando Service Worker...');
   event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      caches.keys().then(function(cacheNames) {
-        return Promise.all(
-          cacheNames.map(function(cacheName) {
-            if (cacheName !== CACHE_NAME) {
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-    ])
+    caches.keys().then(keys => 
+      Promise.all(
+        keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
-// INTERCEPTAR TODAS LAS PETICIONES
-self.addEventListener('fetch', function(event) {
-  // Solo cachear peticiones HTTP/HTTPS
+// FETCH
+self.addEventListener('fetch', event => {
   if (!event.request.url.startsWith('http')) return;
-  
+
   event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Devolver desde cache si existe
-        if (response) {
-          return response;
-        }
-        
-        // Hacer petición network como fallback
-        return fetch(event.request)
-          .then(function(networkResponse) {
-            // Cachear nuevas respuestas
-            if (networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(function(cache) {
-                  cache.put(event.request, responseToCache);
-                });
-            }
-            return networkResponse;
-          })
-          .catch(function() {
-            // Si estamos completamente offline
-            return new Response('🔌 Modo offline', {
-              status: 200,
-              headers: {'Content-Type': 'text/plain'}
-            });
-          });
-      })
+    caches.match(event.request).then(response => {
+      if (response) return response;
+
+      return fetch(event.request)
+        .then(networkResponse => {
+
+          // Cache SOLO archivos del mismo dominio
+          if (networkResponse.status === 200 && 
+              event.request.url.startsWith(self.location.origin)) {
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(event.request, networkResponse.clone()));
+          }
+
+          return networkResponse;
+        })
+        .catch(() => caches.match('./index.html'));
+    })
   );
 });

@@ -1,55 +1,66 @@
 const CACHE_NAME = 'yugioh-tournament-v5';
-
 const urlsToCache = [
+  './',
   './index.html',
   './manifest.json',
-  './sw.js'
+  './icon-192.png',
+  './icon-512.png',
 ];
 
-// INSTALL
-self.addEventListener('install', event => {
-  console.log('🔄 Instalando Service Worker...');
+// INSTALACIÓN
+self.addEventListener('install', (event) => {
+  console.log('SW instalado');
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('📦 Cacheando archivos locales...');
-      return cache.addAll(urlsToCache);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
+  self.skipWaiting();
 });
 
-// ACTIVATE
-self.addEventListener('activate', event => {
-  console.log('🎯 Activando Service Worker...');
+// ACTIVACIÓN
+self.addEventListener('activate', (event) => {
+  console.log('SW activado');
   event.waitUntil(
-    caches.keys().then(keys => 
+    caches.keys().then(keys =>
       Promise.all(
-        keys.map(key => key !== CACHE_NAME ? caches.delete(key) : null)
+        keys.map(key => key !== CACHE_NAME && caches.delete(key))
       )
-    ).then(() => self.clients.claim())
+    )
   );
+  self.clients.claim();
 });
 
 // FETCH
-self.addEventListener('fetch', event => {
-  if (!event.request.url.startsWith('http')) return;
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // ❌ NO cachear nada externo
+  if (url.origin !== location.origin) {
+    return; // permitir carga normal, sin cache
+  }
 
   event.respondWith(
-    caches.match(event.request).then(response => {
-      if (response) return response;
-
-      return fetch(event.request)
-        .then(networkResponse => {
-
-          // Cache SOLO archivos del mismo dominio
-          if (networkResponse.status === 200 && 
-              event.request.url.startsWith(self.location.origin)) {
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, networkResponse.clone()));
-          }
-
-          return networkResponse;
-        })
-        .catch(() => caches.match('./index.html'));
+    caches.match(event.request).then(cacheRes => {
+      return (
+        cacheRes ||
+        fetch(event.request)
+          .then((networkRes) => {
+            // solo clonamos si es OK y del mismo origen
+            if (
+              networkRes &&
+              networkRes.status === 200 &&
+              networkRes.type === "basic"
+            ) {
+              const resClone = networkRes.clone();
+              caches.open(CACHE_NAME).then(cache =>
+                cache.put(event.request, resClone)
+              );
+            }
+            return networkRes;
+          })
+          .catch(() =>
+            caches.match('./index.html')
+          )
+      );
     })
   );
 });

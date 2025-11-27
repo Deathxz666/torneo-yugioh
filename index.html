@@ -392,7 +392,15 @@
                     return;
                 }
 
-                const sorted = [...activeTournament.players].sort((a, b) => b.points - a.points);
+                let sorted = [];
+
+                if (activeTournament.rounds.length === 0) {
+                    // PRIMERA RONDA ALEATORIA
+                    sorted = [...activeTournament.players].sort(() => Math.random() - 0.5);
+                } else {
+                    // RONDAS SIGUIENTES: SISTEMA SUIZO
+                    sorted = [...activeTournament.players].sort((a, b) => b.points - a.points);
+                }
                 const matches = [];
                 const used = new Set();
 
@@ -1063,5 +1071,6 @@
     </script>
 </body>
 </html>
+
 
 

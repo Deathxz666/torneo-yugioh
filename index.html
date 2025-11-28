@@ -316,33 +316,37 @@
         }, [tournaments]);
 
         const activeTournament = tournaments.find(t => t.id === activeTournamentId);
-
-        // ?? NUEVO: sincronizar nombres de jugadores dentro de todas las rondas
+        
+        // 🔵 Sincronizar nombres dentro de todas las rondas cuando cambie la lista de jugadores
         useEffect(() => {
             if (!activeTournament) return;
+        
+            // Actualizar solo el torneo activo
+            const updatedTournaments = tournaments.map(t => {
+                if (t.id !== activeTournamentId) return t;
+        
+                const updatedRounds = t.rounds.map(r => ({
+                    ...r,
+                    matches: r.matches.map(m => {
+                        const p1Real = t.players.find(p => p.id === m.p1.id);
+                        const p2Real = m.p2 ? t.players.find(p => p.id === m.p2.id) : null;
+        
+                        return {
+                            ...m,
+                            p1: { ...m.p1, name: p1Real ? p1Real.name : m.p1.name },
+                            p2: p2Real ? { ...m.p2, name: p2Real.name } : m.p2
+                        };
+                    })
+                }));
+        
+                return { ...t, rounds: updatedRounds };
+            });
+        
+            setTournaments(updatedTournaments);
+        
+        }, [activeTournament?.players]);
 
-            const updatedRounds = activeTournament.rounds.map(r => ({
-                ...r,
-                matches: r.matches.map(m => {
-                    const p1Real = activeTournament.players.find(p => p.id === m.p1.id);
-                    const p2Real = m.p2 ? activeTournament.players.find(p => p.id === m.p2.id) : null;
 
-                    return {
-                        ...m,
-                        p1: { ...m.p1, name: p1Real ? p1Real.name : m.p1.name },
-                        p2: p2Real ? { ...m.p2, name: p2Real.name } : m.p2
-                    };
-                })
-            }));
-
-            const updated = tournaments.map(t =>
-                t.id === activeTournamentId
-                    ? { ...t, rounds: updatedRounds }
-                    : t
-            );
-
-            setTournaments(updated);
-        }, [tournaments, activeTournamentId]);
         function createTournament(name) {
             if (!name.trim()) return;
             const newT = {
@@ -1123,4 +1127,5 @@
 </script>
 </body>
 </html>
+
 

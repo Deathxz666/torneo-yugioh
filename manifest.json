@@ -3,12 +3,14 @@
   "name": "Torneos Yu-Gi-Oh!",
   "short_name": "Torneo YGO",
   "description": "Gestor de torneos Yu-Gi-Oh! offline",
-  "start_url": "/torneo-yugioh/index.html",
+  "start_url": "/torneo-yugioh/index.html?source=pwa",
   "scope": "/torneo-yugioh/",
   "display": "standalone",
   "background_color": "#581c87",
   "theme_color": "#581c87",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "categories": ["games", "entertainment"],
   "icons": [
     {
       "src": "/torneo-yugioh/icon-192.png",

@@ -1,65 +1,57 @@
 const CACHE_NAME = 'yugioh-tournament-v5';
+const OFFLINE_URL = '/torneo-yugioh/index.html';
+
 const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
+  '/torneo-yugioh/',
+  '/torneo-yugioh/index.html',
+  '/torneo-yugioh/manifest.json',
+  '/torneo-yugioh/sw.js'
 ];
 
-// INSTALACIÓN
-self.addEventListener('install', (event) => {
-  console.log('SW instalado');
+// INSTALACIÓN: cache básico
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
   );
   self.skipWaiting();
 });
 
-// ACTIVACIÓN
-self.addEventListener('activate', (event) => {
-  console.log('SW activado');
+// ACTIVACIÓN: limpiar caches viejos
+self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => key !== CACHE_NAME && caches.delete(key))
-      )
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// FETCH
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // ❌ NO cachear nada externo
-  if (url.origin !== location.origin) {
-    return; // permitir carga normal, sin cache
+// FETCH: estrategia App Shell
+self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    // Para navegaciones -> siempre entregar index.html
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+    );
+    return;
   }
 
+  // Para otros recursos
   event.respondWith(
-    caches.match(event.request).then(cacheRes => {
+    caches.match(event.request).then(res => {
       return (
-        cacheRes ||
+        res ||
         fetch(event.request)
-          .then((networkRes) => {
-            // solo clonamos si es OK y del mismo origen
-            if (
-              networkRes &&
-              networkRes.status === 200 &&
-              networkRes.type === "basic"
-            ) {
-              const resClone = networkRes.clone();
-              caches.open(CACHE_NAME).then(cache =>
-                cache.put(event.request, resClone)
-              );
-            }
-            return networkRes;
+          .then(response => {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, cloned);
+            });
+            return response;
           })
-          .catch(() =>
-            caches.match('./index.html')
-          )
+          .catch(() => res)
       );
     })
   );

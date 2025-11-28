@@ -1,57 +1,77 @@
-const CACHE_NAME = 'yugioh-tournament-v5';
-const OFFLINE_URL = '/torneo-yugioh/index.html';
+const CACHE_NAME = "yugioh-tournament-v7";
+const OFFLINE_URL = "/torneo-yugioh/index.html";
 
+// Archivos que deben existir offline
 const urlsToCache = [
-  '/torneo-yugioh/',
-  '/torneo-yugioh/index.html',
-  '/torneo-yugioh/manifest.json',
-  '/torneo-yugioh/sw.js'
+  "/torneo-yugioh/",
+  "/torneo-yugioh/index.html",
+  "/torneo-yugioh/manifest.json",
+  "/torneo-yugioh/sw.js",
+  "/torneo-yugioh/icon-192.png",
+  "/torneo-yugioh/icon-512.png",
+
+  // React - Necesario para que tu app funcione sin internet
+  "https://unpkg.com/react@18/umd/react.development.js",
+  "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
+
+  // Babel (tu app lo usa para interpretar JSX en runtime)
+  "https://unpkg.com/@babel/standalone/babel.min.js",
+
+  // Tailwind CDN
+  "https://cdn.tailwindcss.com",
 ];
 
-// INSTALACIÓN: cache básico
-self.addEventListener('install', event => {
+// INSTALACIÓN: precargar todo
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
+    caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting();
 });
 
-// ACTIVACIÓN: limpiar caches viejos
-self.addEventListener('activate', event => {
+// ACTIVACIÓN: limpiar versiones antiguas
+self.addEventListener("activate", (event) => {
+  clients.claim();
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))
     )
   );
-  self.clients.claim();
 });
 
-// FETCH: estrategia App Shell
-self.addEventListener('fetch', event => {
-  if (event.request.mode === 'navigate') {
-    // Para navegaciones -> siempre entregar index.html
+// FETCH: Offline estable y compatible con PWABuilder
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+
+  // Navegación → Network First con fallback offline
+  if (request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+      fetch(request)
+        .then((response) => {
+          return response;
+        })
+        .catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Para otros recursos
+  // Otros archivos → Cache First con actualización en segundo plano
   event.respondWith(
-    caches.match(event.request).then(res => {
+    caches.match(request).then((cacheRes) => {
       return (
-        res ||
-        fetch(event.request)
-          .then(response => {
+        cacheRes ||
+        fetch(request)
+          .then((response) => {
+            // Cache dinámico
             const cloned = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, cloned);
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, cloned);
             });
             return response;
           })
-          .catch(() => res)
+          .catch(() => cacheRes) // fallback
       );
     })
   );

@@ -423,84 +423,110 @@
             }
             return a;
         }
-
         function generateRound() {
             if (!activeTournament || activeTournament.players.length < 2) {
                 alert('Necesitas al menos 2 jugadores');
                 return;
             }
-
+        
             let players;
-
-            // 🔵 PRIMERA RONDA ALEATORIA
+            const matches = [];
+            const used = new Set();
+        
+            // PRIMERA RONDA: aleatoria y simple (parear por índice tras shuffle)
             if (activeTournament.rounds.length === 0) {
                 players = shuffleArray(activeTournament.players);
+        
+                for (let i = 0; i < players.length; i += 2) {
+                    const p1 = players[i];
+                    const p2 = players[i + 1] || null;
+        
+                    if (p2) {
+                        matches.push({
+                            id: Date.now() + i,
+                            p1: { ...p1 },
+                            p2: { ...p2 },
+                            result: null,
+                            tiePoints: 0
+                        });
+                        // marcar como usados (por claridad)
+                        used.add(p1.id);
+                        used.add(p2.id);
+                    } else {
+                        // BYE si número impar
+                        matches.push({
+                            id: Date.now() + i,
+                            p1: { ...p1 },
+                            p2: null,
+                            result: 'bye',
+                            byePoints: 3
+                        });
+                        used.add(p1.id);
+                    }
+                }
             } else {
-                // 🔵 RONDAS SIGUIENTES – SISTEMA SUIZO
+                // RONDAS SIGUIENTES – sistema suizo: orden por puntos y evitar rivales ya jugados
                 players = [...activeTournament.players].sort((a, b) => {
                     if (b.points !== a.points) return b.points - a.points;
                     if (b.wins !== a.wins) return b.wins - a.wins;
                     return a.losses - b.losses;
                 });
-            }
-
-            const matches = [];
-            const used = new Set();
-
-            for (let i = 0; i < players.length; i++) {
-                if (used.has(players[i].id)) continue;
-
-                let opp = null;
-
-                // Intentar buscar oponente que nunca haya enfrentado (suizo real)
-                for (let j = i + 1; j < players.length; j++) {
-                    if (!used.has(players[j].id) &&
-                        !players[i].opponents.includes(players[j].id)) {
-                        opp = players[j];
-                        break;
-                    }
-                }
-
-                // Si no encuentra, emparejar con cualquiera disponible
-                if (!opp) {
+        
+                for (let i = 0; i < players.length; i++) {
+                    if (used.has(players[i].id)) continue;
+        
+                    let opp = null;
+        
+                    // Intentar buscar oponente que nunca haya enfrentado (suizo real)
                     for (let j = i + 1; j < players.length; j++) {
-                        if (!used.has(players[j].id)) {
+                        if (!used.has(players[j].id) &&
+                            !players[i].opponents.includes(players[j].id)) {
                             opp = players[j];
                             break;
                         }
                     }
-                }
-
-                // Crear el duelo
-                if (opp) {
-                    matches.push({
-                        id: Date.now() + i,
-                        p1: { ...players[i] },
-                        p2: { ...opp },
-                        result: null,
-                        tiePoints: 0
-                    });
-                    used.add(players[i].id);
-                    used.add(opp.id);
-                } else {
-                    // BYE automático
-                    matches.push({
-                        id: Date.now() + i,
-                        p1: { ...players[i] },
-                        p2: null,
-                        result: 'bye',
-                        byePoints: 3
-                    });
-                    used.add(players[i].id);
+        
+                    // Si no encuentra, emparejar con cualquiera disponible
+                    if (!opp) {
+                        for (let j = i + 1; j < players.length; j++) {
+                            if (!used.has(players[j].id)) {
+                                opp = players[j];
+                                break;
+                            }
+                        }
+                    }
+        
+                    // Crear el duelo
+                    if (opp) {
+                        matches.push({
+                            id: Date.now() + i,
+                            p1: { ...players[i] },
+                            p2: { ...opp },
+                            result: null,
+                            tiePoints: 0
+                        });
+                        used.add(players[i].id);
+                        used.add(opp.id);
+                    } else {
+                        // BYE automático
+                        matches.push({
+                            id: Date.now() + i,
+                            p1: { ...players[i] },
+                            p2: null,
+                            result: 'bye',
+                            byePoints: 3
+                        });
+                        used.add(players[i].id);
+                    }
                 }
             }
-
+        
             const newR = {
                 number: activeTournament.rounds.length + 1,
                 matches: matches,
                 completed: false
             };
-
+        
             const updated = tournaments.map(t =>
                 t.id === activeTournamentId
                     ? {
@@ -510,10 +536,11 @@
                     }
                     : t
             );
-
+        
             setTournaments(updated);
             setActiveTab('rondas');
         }
+
         function setResult(mi, res, tiePoints = 0) {
             const updated = tournaments.map(t => {
                 if (t.id !== activeTournamentId) return t;
@@ -1096,3 +1123,4 @@
 </script>
 </body>
 </html>
+

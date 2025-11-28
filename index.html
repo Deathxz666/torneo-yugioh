@@ -273,804 +273,826 @@
         });
     </script>
 
-    <!-- CÓDIGO REACT COMPLETO CON SCROLL MEJORADO -->
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+<script type="text/babel">
+    const { useState, useEffect } = React;
 
-        const Plus = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-        );
+    const Plus = ({ className }) => (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+    );
 
-        const X = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        );
+    const X = ({ className }) => (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    );
 
-        const ArrowLeft = ({ className }) => (
-            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-        );
+    const ArrowLeft = ({ className }) => (
+        <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+    );
 
-        function TorneosYugioh() {
-            const [tournaments, setTournaments] = useState([]);
-            const [activeTournamentId, setActiveTournamentId] = useState(null);
-            const [view, setView] = useState('list');
-            const [newTournamentName, setNewTournamentName] = useState('');
-            const [newPlayerName, setNewPlayerName] = useState('');
-            const [activeTab, setActiveTab] = useState('clasificacion');
+    function TorneosYugioh() {
+        const [tournaments, setTournaments] = useState([]);
+        const [activeTournamentId, setActiveTournamentId] = useState(null);
+        const [view, setView] = useState('list');
+        const [newTournamentName, setNewTournamentName] = useState('');
+        const [newPlayerName, setNewPlayerName] = useState('');
+        const [activeTab, setActiveTab] = useState('clasificacion');
 
-            useEffect(() => {
-                const saved = localStorage.getItem('yugioh-tournaments');
-                if (saved) {
-                    setTournaments(JSON.parse(saved));
+        // Cargar torneos guardados
+        useEffect(() => {
+            const saved = localStorage.getItem('yugioh-tournaments');
+            if (saved) {
+                setTournaments(JSON.parse(saved));
+            }
+        }, []);
+
+        // Guardar torneos al cambiar
+        useEffect(() => {
+            localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
+        }, [tournaments]);
+
+        const activeTournament = tournaments.find(t => t.id === activeTournamentId);
+
+        // ?? NUEVO: sincronizar nombres de jugadores dentro de todas las rondas
+        useEffect(() => {
+            if (!activeTournament) return;
+
+            const updatedRounds = activeTournament.rounds.map(r => ({
+                ...r,
+                matches: r.matches.map(m => {
+                    const p1Real = activeTournament.players.find(p => p.id === m.p1.id);
+                    const p2Real = m.p2 ? activeTournament.players.find(p => p.id === m.p2.id) : null;
+
+                    return {
+                        ...m,
+                        p1: { ...m.p1, name: p1Real ? p1Real.name : m.p1.name },
+                        p2: p2Real ? { ...m.p2, name: p2Real.name } : m.p2
+                    };
+                })
+            }));
+
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId
+                    ? { ...t, rounds: updatedRounds }
+                    : t
+            );
+
+            setTournaments(updated);
+        }, [tournaments, activeTournamentId]);
+        function createTournament(name) {
+            if (!name.trim()) return;
+            const newT = {
+                id: Date.now(),
+                name: name.trim(),
+                players: [],
+                rounds: [],
+                currentRoundIndex: -1
+            };
+            setTournaments([...tournaments, newT]);
+            setActiveTournamentId(newT.id);
+            setView('tournament');
+            setNewTournamentName('');
+        }
+
+        function deleteTournament(id) {
+            if (!window.confirm('¿Eliminar este torneo?')) return;
+            setTournaments(tournaments.filter(t => t.id !== id));
+            if (activeTournamentId === id) {
+                setActiveTournamentId(null);
+                setView('list');
+            }
+        }
+
+        function addPlayer(name) {
+            if (!name.trim() || !activeTournament) return;
+            const newP = {
+                id: Date.now(),
+                name: name.trim(),
+                points: 0,
+                wins: 0,
+                losses: 0,
+                ties: 0,
+                opponents: []
+            };
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId
+                    ? { ...t, players: [...t.players, newP] }
+                    : t
+            );
+            setTournaments(updated);
+            setNewPlayerName('');
+        }
+
+        function deletePlayer(pid) {
+            if (!window.confirm('¿Eliminar este jugador?')) return;
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId
+                    ? { ...t, players: t.players.filter(p => p.id !== pid) }
+                    : t
+            );
+            setTournaments(updated);
+        }
+
+        function editPlayer(pid, newName) {
+            if (!newName.trim()) return;
+
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId
+                    ? {
+                        ...t,
+                        players: t.players.map(p =>
+                            p.id === pid ? { ...p, name: newName.trim() } : p
+                        )
+                    }
+                    : t
+            );
+
+            setTournaments(updated);
+        }
+
+        // 🔵 Random shuffle para primera ronda
+        function shuffleArray(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function generateRound() {
+            if (!activeTournament || activeTournament.players.length < 2) {
+                alert('Necesitas al menos 2 jugadores');
+                return;
+            }
+
+            let players;
+
+            // 🔵 PRIMERA RONDA ALEATORIA
+            if (activeTournament.rounds.length === 0) {
+                players = shuffleArray(activeTournament.players);
+            } else {
+                // 🔵 RONDAS SIGUIENTES – SISTEMA SUIZO
+                players = [...activeTournament.players].sort((a, b) => {
+                    if (b.points !== a.points) return b.points - a.points;
+                    if (b.wins !== a.wins) return b.wins - a.wins;
+                    return a.losses - b.losses;
+                });
+            }
+
+            const matches = [];
+            const used = new Set();
+
+            for (let i = 0; i < players.length; i++) {
+                if (used.has(players[i].id)) continue;
+
+                let opp = null;
+
+                // Intentar buscar oponente que nunca haya enfrentado (suizo real)
+                for (let j = i + 1; j < players.length; j++) {
+                    if (!used.has(players[j].id) &&
+                        !players[i].opponents.includes(players[j].id)) {
+                        opp = players[j];
+                        break;
+                    }
                 }
-            }, []);
 
-            useEffect(() => {
-                localStorage.setItem('yugioh-tournaments', JSON.stringify(tournaments));
-            }, [tournaments]);
-
-            const activeTournament = tournaments.find(t => t.id === activeTournamentId);
-
-            function createTournament(name) {
-                if (!name.trim()) return;
-                const newT = {
-                    id: Date.now(),
-                    name: name.trim(),
-                    players: [],
-                    rounds: [],
-                    currentRoundIndex: -1
-                };
-                setTournaments([...tournaments, newT]);
-                setActiveTournamentId(newT.id);
-                setView('tournament');
-                setNewTournamentName('');
-            }
-
-            function deleteTournament(id) {
-                if (!window.confirm('¿Eliminar este torneo?')) return;
-                setTournaments(tournaments.filter(t => t.id !== id));
-                if (activeTournamentId === id) {
-                    setActiveTournamentId(null);
-                    setView('list');
-                }
-            }
-
-            function addPlayer(name) {
-                if (!name.trim() || !activeTournament) return;
-                const newP = {
-                    id: Date.now(),
-                    name: name.trim(),
-                    points: 0,
-                    wins: 0,
-                    losses: 0,
-                    ties: 0,
-                    opponents: []
-                };
-                const updated = tournaments.map(t => 
-                    t.id === activeTournamentId 
-                        ? { ...t, players: [...t.players, newP] }
-                        : t
-                );
-                setTournaments(updated);
-                setNewPlayerName('');
-            }
-
-            function deletePlayer(pid) {
-                if (!window.confirm('¿Eliminar este jugador?')) return;
-                const updated = tournaments.map(t => 
-                    t.id === activeTournamentId 
-                        ? { ...t, players: t.players.filter(p => p.id !== pid) }
-                        : t
-                );
-                setTournaments(updated);
-            }
-            function editPlayer(pid, newName) {
-                if (!newName.trim()) return;
-            
-                const updated = tournaments.map(t => 
-                    t.id === activeTournamentId
-                        ? { 
-                            ...t, 
-                            players: t.players.map(p => 
-                                p.id === pid ? { ...p, name: newName.trim() } : p
-                            )
-                          }
-                        : t
-                );
-            
-                setTournaments(updated);
-            }
-
-            function generateRound() {
-                if (!activeTournament || activeTournament.players.length < 2) {
-                    alert('Necesitas al menos 2 jugadores');
-                    return;
-                }
-
-                let sorted = [];
-
-                if (activeTournament.rounds.length === 0) {
-                    // PRIMERA RONDA ALEATORIA
-                    sorted = [...activeTournament.players].sort(() => Math.random() - 0.5);
-                } else {
-                    // RONDAS SIGUIENTES: SISTEMA SUIZO
-                    sorted = [...activeTournament.players].sort((a, b) => b.points - a.points);
-                }
-                const matches = [];
-                const used = new Set();
-
-                for (let i = 0; i < sorted.length; i++) {
-                    if (used.has(sorted[i].id)) continue;
-
-                    let opp = null;
-                    for (let j = i + 1; j < sorted.length; j++) {
-                        if (!used.has(sorted[j].id) && !sorted[i].opponents.includes(sorted[j].id)) {
-                            opp = sorted[j];
+                // Si no encuentra, emparejar con cualquiera disponible
+                if (!opp) {
+                    for (let j = i + 1; j < players.length; j++) {
+                        if (!used.has(players[j].id)) {
+                            opp = players[j];
                             break;
                         }
                     }
+                }
 
-                    if (!opp) {
-                        for (let j = i + 1; j < sorted.length; j++) {
-                            if (!used.has(sorted[j].id)) {
-                                opp = sorted[j];
-                                break;
+                // Crear el duelo
+                if (opp) {
+                    matches.push({
+                        id: Date.now() + i,
+                        p1: { ...players[i] },
+                        p2: { ...opp },
+                        result: null,
+                        tiePoints: 0
+                    });
+                    used.add(players[i].id);
+                    used.add(opp.id);
+                } else {
+                    // BYE automático
+                    matches.push({
+                        id: Date.now() + i,
+                        p1: { ...players[i] },
+                        p2: null,
+                        result: 'bye',
+                        byePoints: 3
+                    });
+                    used.add(players[i].id);
+                }
+            }
+
+            const newR = {
+                number: activeTournament.rounds.length + 1,
+                matches: matches,
+                completed: false
+            };
+
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId
+                    ? {
+                        ...t,
+                        rounds: [...t.rounds, newR],
+                        currentRoundIndex: t.rounds.length
+                    }
+                    : t
+            );
+
+            setTournaments(updated);
+            setActiveTab('rondas');
+        }
+        function setResult(mi, res, tiePoints = 0) {
+            const updated = tournaments.map(t => {
+                if (t.id !== activeTournamentId) return t;
+
+                const newRounds = [...t.rounds];
+
+                if (newRounds[t.currentRoundIndex]) {
+                    newRounds[t.currentRoundIndex].matches[mi].result = res;
+
+                    if (res === 'tie') {
+                        newRounds[t.currentRoundIndex].matches[mi].tiePoints = tiePoints;
+                    }
+                }
+
+                return { ...t, rounds: newRounds };
+            });
+
+            setTournaments(updated);
+        }
+
+        function setByePoints(mi, pts) {
+            const updated = tournaments.map(t => {
+                if (t.id !== activeTournamentId) return t;
+
+                const newRounds = [...t.rounds];
+
+                if (newRounds[t.currentRoundIndex]) {
+                    newRounds[t.currentRoundIndex].matches[mi].byePoints = pts;
+                }
+
+                return { ...t, rounds: newRounds };
+            });
+
+            setTournaments(updated);
+        }
+
+        function completeRound() {
+            if (!activeTournament) return;
+
+            const round = activeTournament.rounds[activeTournament.currentRoundIndex];
+
+            if (!round || !round.matches.every(m => m.result !== null)) {
+                alert('Completa todos los duelos');
+                return;
+            }
+
+            const updated = tournaments.map(t => {
+                if (t.id !== activeTournamentId) return t;
+
+                const newPlayers = [...t.players];
+
+                round.matches.forEach(m => {
+                    if (m.result === 'bye') {
+                        const p = newPlayers.find(pl => pl.id === m.p1.id);
+                        if (p) {
+                            p.points += m.byePoints || 3;
+                            p.wins += 1;
+                        }
+                    } else if (m.p2) {
+                        const p1 = newPlayers.find(pl => pl.id === m.p1.id);
+                        const p2 = newPlayers.find(pl => pl.id === m.p2.id);
+
+                        if (p1 && p2) {
+                            if (!p1.opponents.includes(p2.id)) p1.opponents.push(p2.id);
+                            if (!p2.opponents.includes(p1.id)) p2.opponents.push(p1.id);
+
+                            if (m.result === 'p1') {
+                                p1.points += 3;
+                                p1.wins += 1;
+                                p2.losses += 1;
+                            } else if (m.result === 'p2') {
+                                p2.points += 3;
+                                p2.wins += 1;
+                                p1.losses += 1;
+                            } else if (m.result === 'tie') {
+                                p1.points += m.tiePoints;
+                                p2.points += m.tiePoints;
+                                p1.ties += 1;
+                                p2.ties += 1;
                             }
                         }
                     }
+                });
 
-                    if (opp) {
-                        matches.push({
-                            id: Date.now() + i,
-                            p1: { ...sorted[i] },
-                            p2: { ...opp },
-                            result: null,
-                            tiePoints: 0
-                        });
-                        used.add(sorted[i].id);
-                        used.add(opp.id);
-                    } else {
-                        matches.push({
-                            id: Date.now() + i,
-                            p1: { ...sorted[i] },
-                            p2: null,
-                            result: 'bye',
-                            byePoints: 3
-                        });
-                        used.add(sorted[i].id);
-                    }
+                const newRounds = [...t.rounds];
+                if (newRounds[t.currentRoundIndex]) {
+                    newRounds[t.currentRoundIndex].completed = true;
                 }
 
-                const newR = {
-                    number: activeTournament.rounds.length + 1,
-                    matches: matches,
-                    completed: false
-                };
+                return { ...t, players: newPlayers, rounds: newRounds };
+            });
 
-                const updated = tournaments.map(t => 
-                    t.id === activeTournamentId 
-                        ? { 
-                            ...t, 
-                            rounds: [...t.rounds, newR], 
-                            currentRoundIndex: t.rounds.length
-                          }
-                        : t
-                );
-                setTournaments(updated);
-                setActiveTab('rondas');
-            }
+            setTournaments(updated);
+        }
 
-            function setResult(mi, res, tiePoints = 0) {
-                const updated = tournaments.map(t => {
-                    if (t.id !== activeTournamentId) return t;
-                    const newRounds = [...t.rounds];
-                    if (newRounds[t.currentRoundIndex]) {
-                        newRounds[t.currentRoundIndex].matches[mi].result = res;
-                        if (res === 'tie') {
-                            newRounds[t.currentRoundIndex].matches[mi].tiePoints = tiePoints;
-                        }
-                    }
-                    return { ...t, rounds: newRounds };
-                });
-                setTournaments(updated);
-            }
+        function deleteRound(ri) {
+            if (!window.confirm('¿Eliminar esta ronda?')) return;
 
-            function setByePoints(mi, pts) {
-                const updated = tournaments.map(t => {
-                    if (t.id !== activeTournamentId) return t;
-                    const newRounds = [...t.rounds];
-                    if (newRounds[t.currentRoundIndex]) {
-                        newRounds[t.currentRoundIndex].matches[mi].byePoints = pts;
-                    }
-                    return { ...t, rounds: newRounds };
-                });
-                setTournaments(updated);
-            }
+            const updated = tournaments.map(t => {
+                if (t.id !== activeTournamentId) return t;
 
-            function completeRound() {
-                if (!activeTournament) return;
-                const round = activeTournament.rounds[activeTournament.currentRoundIndex];
-                
-                if (!round || !round.matches.every(m => m.result !== null)) {
-                    alert('Completa todos los duelos');
-                    return;
-                }
+                const roundToDelete = t.rounds[ri];
+                let newPlayers = [...t.players];
 
-                const updated = tournaments.map(t => {
-                    if (t.id !== activeTournamentId) return t;
-                    
-                    const newPlayers = [...t.players];
-                    round.matches.forEach(m => {
+                // Revertir efectos de la ronda eliminada
+                if (roundToDelete.completed) {
+                    roundToDelete.matches.forEach(m => {
                         if (m.result === 'bye') {
                             const p = newPlayers.find(pl => pl.id === m.p1.id);
                             if (p) {
-                                p.points += m.byePoints || 3;
-                                p.wins += 1;
+                                p.points -= m.byePoints || 3;
+                                p.wins -= 1;
                             }
                         } else if (m.p2) {
                             const p1 = newPlayers.find(pl => pl.id === m.p1.id);
                             const p2 = newPlayers.find(pl => pl.id === m.p2.id);
-                            
+
                             if (p1 && p2) {
-                                if (!p1.opponents.includes(p2.id)) p1.opponents.push(p2.id);
-                                if (!p2.opponents.includes(p1.id)) p2.opponents.push(p1.id);
+                                p1.opponents = p1.opponents.filter(id => id !== p2.id);
+                                p2.opponents = p2.opponents.filter(id => id !== p1.id);
 
                                 if (m.result === 'p1') {
-                                    p1.points += 3;
-                                    p1.wins += 1;
-                                    p2.losses += 1;
+                                    p1.points -= 3;
+                                    p1.wins -= 1;
+                                    p2.losses -= 1;
                                 } else if (m.result === 'p2') {
-                                    p2.points += 3;
-                                    p2.wins += 1;
-                                    p1.losses += 1;
+                                    p2.points -= 3;
+                                    p2.wins -= 1;
+                                    p1.losses -= 1;
                                 } else if (m.result === 'tie') {
-                                    p1.points += m.tiePoints;
-                                    p2.points += m.tiePoints;
-                                    p1.ties += 1;
-                                    p2.ties += 1;
+                                    p1.points -= m.tiePoints;
+                                    p2.points -= m.tiePoints;
+                                    p1.ties -= 1;
+                                    p2.ties -= 1;
                                 }
                             }
                         }
                     });
+                }
 
-                    const newRounds = [...t.rounds];
-                    if (newRounds[t.currentRoundIndex]) {
-                        newRounds[t.currentRoundIndex].completed = true;
-                    }
+                // Quitar ronda del listado
+                const newRounds = t.rounds.filter((_, i) => i !== ri);
 
-                    return { ...t, players: newPlayers, rounds: newRounds };
-                });
-                setTournaments(updated);
-            }
+                let newCurrentRoundIndex = t.currentRoundIndex;
 
-            function deleteRound(ri) {
-                if (!window.confirm('¿Eliminar esta ronda?')) return;
-                const updated = tournaments.map(t => {
-                    if (t.id !== activeTournamentId) return t;
-                    
-                    const roundToDelete = t.rounds[ri];
-                    if (roundToDelete.completed) {
-                        const newPlayers = [...t.players];
-                        roundToDelete.matches.forEach(m => {
-                            if (m.result === 'bye') {
-                                const p = newPlayers.find(pl => pl.id === m.p1.id);
-                                if (p) {
-                                    p.points -= m.byePoints || 3;
-                                    p.wins -= 1;
-                                }
-                            } else if (m.p2) {
-                                const p1 = newPlayers.find(pl => pl.id === m.p1.id);
-                                const p2 = newPlayers.find(pl => pl.id === m.p2.id);
-                                
-                                if (p1 && p2) {
-                                    p1.opponents = p1.opponents.filter(id => id !== p2.id);
-                                    p2.opponents = p2.opponents.filter(id => id !== p1.id);
+                if (ri === t.currentRoundIndex) {
+                    newCurrentRoundIndex = newRounds.length > 0 ? newRounds.length - 1 : -1;
+                } else if (ri < t.currentRoundIndex) {
+                    newCurrentRoundIndex = t.currentRoundIndex - 1;
+                }
 
-                                    if (m.result === 'p1') {
-                                        p1.points -= 3;
-                                        p1.wins -= 1;
-                                        p2.losses -= 1;
-                                    } else if (m.result === 'p2') {
-                                        p2.points -= 3;
-                                        p2.wins -= 1;
-                                        p1.losses -= 1;
-                                    } else if (m.result === 'tie') {
-                                        p1.points -= m.tiePoints;
-                                        p2.points -= m.tiePoints;
-                                        p1.ties -= 1;
-                                        p2.ties -= 1;
-                                    }
-                                }
-                            }
-                        });
-                    }
+                return {
+                    ...t,
+                    players: newPlayers,
+                    rounds: newRounds,
+                    currentRoundIndex: newCurrentRoundIndex
+                };
+            });
 
-                    const newRounds = t.rounds.filter((r, i) => i !== ri);
-                    let newCurrentRoundIndex = t.currentRoundIndex;
-                    
-                    if (ri === t.currentRoundIndex) {
-                        newCurrentRoundIndex = newRounds.length > 0 ? newRounds.length - 1 : -1;
-                    } else if (ri < t.currentRoundIndex) {
-                        newCurrentRoundIndex = t.currentRoundIndex - 1;
-                    }
+            setTournaments(updated);
+        }
 
-                    return { 
-                        ...t, 
-                        players: roundToDelete.completed ? newPlayers : t.players,
-                        rounds: newRounds, 
-                        currentRoundIndex: newCurrentRoundIndex 
-                    };
-                });
-                setTournaments(updated);
-            }
+        function changeRound(i) {
+            const updated = tournaments.map(t =>
+                t.id === activeTournamentId ? { ...t, currentRoundIndex: i } : t
+            );
+            setTournaments(updated);
+        }
 
-            function changeRound(i) {
-                const updated = tournaments.map(t => 
-                    t.id === activeTournamentId ? { ...t, currentRoundIndex: i } : t
-                );
-                setTournaments(updated);
-            }
-
-            const sortedPlayers = activeTournament ? [...activeTournament.players].sort((a, b) => {
+        const sortedPlayers = activeTournament
+            ? [...activeTournament.players].sort((a, b) => {
                 if (b.points !== a.points) return b.points - a.points;
                 if (b.wins !== a.wins) return b.wins - a.wins;
                 return a.losses - b.losses;
-            }) : [];
+            })
+            : [];
+        // VISTA PRINCIPAL – LISTA DE TORNEOS
+        if (view === 'list') {
+            return (
+                <div className="min-h-screen bg-gray-50 p-3">
+                    <div className="max-w-2xl mx-auto">
 
-            // Vista principal - Lista de torneos
-            if (view === 'list') {
-                return (
-                    <div className="min-h-screen bg-gray-50 p-3">
-                        <div className="max-w-2xl mx-auto">
-                            {/* Header más compacto */}
-                            <div className="mb-4">
-                                <h1 className="text-xl font-bold text-gray-900 text-center">
-                                    Torneos Yu-Gi-Oh!
-                                </h1>
+                        <div className="mb-4">
+                            <h1 className="text-xl font-bold text-gray-900 text-center">
+                                Torneos Yu-Gi-Oh!
+                            </h1>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
+                            <h2 className="text-md font-bold text-gray-900 mb-3">Mis Torneos</h2>
+
+                            <div className="flex gap-2 mb-3">
+                                <input
+                                    type="text"
+                                    placeholder="Nombre del torneo"
+                                    value={newTournamentName}
+                                    onChange={(e) => setNewTournamentName(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                                    onKeyPress={(e) => e.key === 'Enter' && createTournament(newTournamentName)}
+                                />
+                                <button
+                                    onClick={() => createTournament(newTournamentName)}
+                                    className="btn-primary px-3 py-2 rounded text-sm min-w-[44px]"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
                             </div>
 
-                            {/* Sección Mis Torneos - con scroll mejorado */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
-                                <h2 className="text-md font-bold text-gray-900 mb-3">
-                                    Mis Torneos
-                                </h2>
-
-                                {/* Input más compacto */}
-                                <div className="flex gap-2 mb-3">
-                                    <input
-                                        type="text"
-                                        placeholder="Nombre del torneo"
-                                        value={newTournamentName}
-                                        onChange={(e) => setNewTournamentName(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') {
-                                                createTournament(newTournamentName);
-                                            }
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => createTournament(newTournamentName)}
-                                        className="btn-primary px-3 py-2 rounded text-sm min-w-[44px]"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                    </button>
+                            {tournaments.length === 0 ? (
+                                <div className="text-center py-6 text-gray-500 text-sm">
+                                    No hay torneos
                                 </div>
-
-                                {/* Lista de torneos con SCROLL MEJORADO */}
-                                {tournaments.length === 0 ? (
-                                    <div className="text-center py-6">
-                                        <p className="text-gray-500 text-sm">No hay torneos</p>
-                                    </div>
-                                ) : (
-                                    <div className="tournament-list scroll-improved space-y-2 relative">
-                                        {tournaments.length > 3 && (
-                                            <div className="scroll-hint">Desliza para ver más</div>
-                                        )}
-                                        {tournaments.map(t => (
-                                            <div key={t.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                                                <div className="flex-1 min-w-0">
-                                                    <span className="font-medium text-gray-900 text-sm block truncate">{t.name}</span>
-                                                    <p className="text-xs text-gray-600">{t.players.length} jug • {t.rounds.length} rondas</p>
-                                                </div>
-                                                <div className="flex gap-1 ml-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setActiveTournamentId(t.id);
-                                                            setView('tournament');
-                                                        }}
-                                                        className="btn-primary px-2 py-1 rounded text-xs min-w-[50px]"
-                                                    >
-                                                        Abrir
-                                                    </button>
-                                                    <button
-                                                        onClick={() => deleteTournament(t.id)}
-                                                        className="btn-danger px-2 py-1 rounded text-xs min-w-[32px]"
-                                                    >
-                                                        <X className="w-3 h-3" />
-                                                    </button>
-                                                </div>
+                            ) : (
+                                <div className="tournament-list space-y-2 scroll-improved">
+                                    {tournaments.map(t => (
+                                        <div key={t.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
+                                            <div className="flex-1 min-w-0">
+                                                <span className="font-medium text-gray-900 text-sm truncate block">{t.name}</span>
+                                                <span className="text-xs text-gray-600">
+                                                    {t.players.length} jugadores • {t.rounds.length} rondas
+                                                </span>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+
+                                            <div className="flex gap-1 ml-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setActiveTournamentId(t.id);
+                                                        setView('tournament');
+                                                    }}
+                                                    className="btn-primary px-2 py-1 rounded text-xs"
+                                                >
+                                                    Abrir
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteTournament(t.id)}
+                                                    className="btn-danger px-2 py-1 rounded text-xs"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
-                );
-            }
+                </div>
+            );
+        }
 
-            // Vista de torneo individual
-            if (view === 'tournament' && activeTournament) {
-                const currentRound = activeTournament.currentRoundIndex >= 0 
-                    ? activeTournament.rounds[activeTournament.currentRoundIndex] 
+        // VISTA DE TORNEO INDIVIDUAL
+        if (view === 'tournament' && activeTournament) {
+            const currentRound =
+                activeTournament.currentRoundIndex >= 0
+                    ? activeTournament.rounds[activeTournament.currentRoundIndex]
                     : null;
 
-                return (
-                    <div className="min-h-screen bg-gray-50 p-3">
-                        <div className="max-w-4xl mx-auto">
-                            {/* Botón Atrás más compacto */}
-                            <button
-                                onClick={() => setView('list')}
-                                className="flex items-center gap-1 text-gray-600 mb-3 hover:bg-white px-2 py-1 rounded text-sm"
-                            >
-                                <ArrowLeft className="w-3 h-3" />
-                                Atrás
-                            </button>
+            return (
+                <div className="min-h-screen bg-gray-50 p-3">
+                    <div className="max-w-4xl mx-auto">
 
-                            {/* Header del Torneo más compacto */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
-                                <h1 className="text-lg font-bold text-gray-900 text-center truncate">
-                                    {activeTournament.name}
-                                </h1>
+                        <button
+                            onClick={() => setView('list')}
+                            className="flex items-center gap-1 text-gray-600 mb-3 hover:bg-white px-2 py-1 rounded text-sm"
+                        >
+                            <ArrowLeft className="w-3 h-3" />
+                            Atrás
+                        </button>
+
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-3">
+                            <h1 className="text-lg font-bold text-gray-900 text-center">
+                                {activeTournament.name}
+                            </h1>
+                        </div>
+
+                        {/* PESTAÑAS */}
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-3">
+                            <div className="flex border-b border-gray-200">
+                                {['clasificacion', 'jugadores', 'rondas'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`flex-1 py-2 text-xs font-medium ${
+                                            activeTab === tab
+                                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    </button>
+                                ))}
                             </div>
 
-                            {/* Pestañas más compactas */}
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-3">
-                                <div className="flex border-b border-gray-200">
-                                    <button
-                                        onClick={() => setActiveTab('clasificacion')}
-                                        className={`flex-1 py-2 text-xs font-medium ${
-                                            activeTab === 'clasificacion'
-                                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                                : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                    >
-                                        Clasificación
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('jugadores')}
-                                        className={`flex-1 py-2 text-xs font-medium ${
-                                            activeTab === 'jugadores'
-                                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                                : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                    >
-                                        Jugadores
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('rondas')}
-                                        className={`flex-1 py-2 text-xs font-medium ${
-                                            activeTab === 'rondas'
-                                                ? 'text-blue-600 border-b-2 border-blue-600'
-                                                : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                    >
-                                        Rondas
-                                    </button>
-                                </div>
+                            <div className="p-3">
+                                {/* CLASIFICACIÓN */}
+                                {activeTab === 'clasificacion' && (
+                                    <>
+                                        <h2 className="text-md font-bold mb-3">Clasificación</h2>
+                                        {sortedPlayers.length === 0 ? (
+                                            <p className="text-center py-6 text-gray-500 text-sm">No hay jugadores</p>
+                                        ) : (
+                                            <div className="classification-table scroll-improved">
+                                                <table className="w-full text-xs">
+                                                    <thead>
+                                                        <tr className="border-b border-gray-200">
+                                                            <th>#</th><th>Jugador</th><th>Pts</th><th>W</th><th>L</th><th>T</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sortedPlayers.map((p, i) => (
+                                                            <tr key={p.id} className="border-b border-gray-100">
+                                                                <td className="py-1 text-center">{i + 1}</td>
+                                                                <td className="py-1 font-medium truncate">{p.name}</td>
+                                                                <td className="py-1 text-center">{p.points}</td>
+                                                                <td className="py-1 text-center">{p.wins}</td>
+                                                                <td className="py-1 text-center">{p.losses}</td>
+                                                                <td className="py-1 text-center">{p.ties}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
 
-                                {/* Contenido de las pestañas */}
-                                <div className="p-3">
-                                    {/* Pestaña Clasificación - con SCROLL MEJORADO */}
-                                    {activeTab === 'clasificacion' && (
-                                        <div>
-                                            <h2 className="text-md font-bold text-gray-900 mb-3">Clasificación</h2>
-                                            {sortedPlayers.length === 0 ? (
-                                                <p className="text-gray-500 text-center py-6 text-sm">No hay jugadores</p>
-                                            ) : (
-                                                <div className="classification-table scroll-improved">
+                                {/* JUGADORES */}
+                                {activeTab === 'jugadores' && (
+                                    <>
+                                        <h2 className="text-md font-bold mb-3">Jugadores</h2>
+
+                                        <div className="flex gap-2 mb-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Nombre del jugador"
+                                                value={newPlayerName}
+                                                onChange={(e) => setNewPlayerName(e.target.value)}
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                                                onKeyPress={(e) => e.key === 'Enter' && addPlayer(newPlayerName)}
+                                            />
+                                            <button
+                                                onClick={() => addPlayer(newPlayerName)}
+                                                className="btn-primary px-3 py-2 rounded text-sm"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="players-list scroll-improved space-y-2">
+                                            {activeTournament.players.map(p => (
+                                                <div key={p.id} className="flex justify-between items-center p-2 bg-gray-100 border rounded">
+                                                    <div>
+                                                        <p className="font-medium">{p.name}</p>
+                                                        <p className="text-xs text-gray-600">
+                                                            {p.points}pts • W:{p.wins} L:{p.losses} T:{p.ties}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex gap-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                const newName = prompt('Nuevo nombre:', p.name);
+                                                                if (newName !== null) editPlayer(p.id, newName);
+                                                            }}
+                                                            className="px-2 py-1 bg-yellow-400 text-white rounded text-xs"
+                                                        >
+                                                            Editar
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => deletePlayer(p.id)}
+                                                            className="btn-danger px-2 py-1 rounded text-xs"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* RONDAS */}
+                                {activeTab === 'rondas' && (
+                                    <>
+                                        <div className="flex justify-between mb-3">
+                                            <h2 className="text-md font-bold">Rondas</h2>
+
+                                            {activeTournament.players.length >= 2 && (
+                                                <button
+                                                    onClick={generateRound}
+                                                    className="btn-success px-3 py-1 rounded text-xs"
+                                                >
+                                                    Ronda {activeTournament.rounds.length + 1}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Selector de rondas */}
+                                        <div className="flex gap-1 overflow-x-auto pb-1">
+                                            {activeTournament.rounds.map((r, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => changeRound(i)}
+                                                    className={`px-2 py-1 rounded text-xs font-medium ${
+                                                        i === activeTournament.currentRoundIndex
+                                                            ? 'btn-primary'
+                                                            : 'bg-gray-200 text-gray-700'
+                                                    }`}
+                                                >
+                                                    R{r.number} {r.completed && '✓'}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Tabla de la ronda actual */}
+                                        {currentRound && (
+                                            <div className="mt-3">
+                                                <div className="flex justify-between mb-2">
+                                                    <h3 className="font-bold text-sm">Ronda {currentRound.number}</h3>
+
+                                                    <button
+                                                        onClick={() => deleteRound(activeTournament.currentRoundIndex)}
+                                                        className="btn-danger px-2 py-1 rounded text-xs flex items-center gap-1"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+
+                                                <div className="rounds-table scroll-improved">
                                                     <table className="w-full text-xs">
                                                         <thead>
                                                             <tr className="border-b border-gray-200">
-                                                                <th className="text-left py-1 font-semibold text-gray-900 w-8">#</th>
-                                                                <th className="text-left py-1 font-semibold text-gray-900">Jugador</th>
-                                                                <th className="text-center py-1 font-semibold text-gray-900 w-12">Pts</th>
-                                                                <th className="text-center py-1 font-semibold text-gray-900 w-8">W</th>
-                                                                <th className="text-center py-1 font-semibold text-gray-900 w-8">L</th>
-                                                                <th className="text-center py-1 font-semibold text-gray-900 w-8">T</th>
+                                                                <th>Mesa</th>
+                                                                <th>Jugador 1</th>
+                                                                <th>VS</th>
+                                                                <th>Jugador 2</th>
+                                                                <th>Resultado</th>
                                                             </tr>
                                                         </thead>
+
                                                         <tbody>
-                                                            {sortedPlayers.map((p, i) => (
-                                                                <tr key={p.id} className="border-b border-gray-100">
-                                                                    <td className="py-2 font-semibold text-gray-900 text-center">{i + 1}</td>
-                                                                    <td className="py-2 font-medium text-gray-900 truncate max-w-[120px]">{p.name}</td>
-                                                                    <td className="py-2 text-center font-semibold text-gray-900">{p.points}</td>
-                                                                    <td className="py-2 text-center text-gray-600">{p.wins}</td>
-                                                                    <td className="py-2 text-center text-gray-600">{p.losses}</td>
-                                                                    <td className="py-2 text-center text-gray-600">{p.ties}</td>
+                                                            {currentRound.matches.map((m, mi) => (
+                                                                <tr key={m.id} className="border-b border-gray-100">
+                                                                    <td className="text-center py-1">{mi + 1}</td>
+
+                                                                    <td className="py-1">
+                                                                        <span className="font-medium block truncate">{m.p1.name}</span>
+                                                                        <span className="text-[10px] text-gray-600">
+                                                                            {m.p1.points} pts
+                                                                        </span>
+                                                                    </td>
+
+                                                                    <td className="text-center text-gray-400">VS</td>
+
+                                                                    <td className="py-1">
+                                                                        {m.p2 ? (
+                                                                            <>
+                                                                                <span className="font-medium block truncate">{m.p2.name}</span>
+                                                                                <span className="text-[10px] text-gray-600">
+                                                                                    {m.p2.points} pts
+                                                                                </span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="text-gray-500">BYE</span>
+                                                                        )}
+                                                                    </td>
+
+                                                                    <td className="py-1">
+                                                                        {/* RESULTADOS */}
+                                                                        {m.p2 ? (
+                                                                            <div className="flex flex-col gap-1 items-center">
+                                                                                <div className="flex gap-1">
+                                                                                    <button
+                                                                                        onClick={() => setResult(mi, 'p1')}
+                                                                                        className={`px-1 py-1 rounded text-[10px] ${
+                                                                                            m.result === 'p1'
+                                                                                                ? 'btn-success'
+                                                                                                : 'bg-gray-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        J1
+                                                                                        </button>
+
+                                                                                    <button
+                                                                                        onClick={() => setResult(mi, 'tie', 0)}
+                                                                                        className={`px-1 py-1 rounded text-[10px] ${
+                                                                                            m.result === 'tie'
+                                                                                                ? 'bg-blue-600 text-white'
+                                                                                                : 'bg-gray-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        Emp
+                                                                                    </button>
+
+                                                                                    <button
+                                                                                        onClick={() => setResult(mi, 'p2')}
+                                                                                        className={`px-1 py-1 rounded text-[10px] ${
+                                                                                            m.result === 'p2'
+                                                                                                ? 'btn-success'
+                                                                                                : 'bg-gray-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        J2
+                                                                                    </button>
+                                                                                </div>
+
+                                                                                {m.result === 'tie' && (
+                                                                                    <div className="flex gap-1 items-center text-[10px]">
+                                                                                        <span>Pts:</span>
+                                                                                        {[0, 1].map(points => (
+                                                                                            <button
+                                                                                                key={points}
+                                                                                                onClick={() => setResult(mi, 'tie', points)}
+                                                                                                className={`w-5 h-5 rounded ${
+                                                                                                    m.tiePoints === points
+                                                                                                        ? 'bg-blue-600 text-white'
+                                                                                                        : 'bg-gray-200'
+                                                                                                }`}
+                                                                                            >
+                                                                                                {points}
+                                                                                            </button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex gap-1 items-center">
+                                                                                {[0, 1, 2, 3].map(pts => (
+                                                                                    <button
+                                                                                        key={pts}
+                                                                                        onClick={() => setByePoints(mi, pts)}
+                                                                                        className={`w-6 h-6 rounded text-[10px] ${
+                                                                                            m.byePoints === pts
+                                                                                                ? 'btn-primary'
+                                                                                                : 'bg-gray-200'
+                                                                                        }`}
+                                                                                    >
+                                                                                        {pts}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
                                                     </table>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
 
-                                    {/* Pestaña Jugadores - con SCROLL MEJORADO */}
-                                    {activeTab === 'jugadores' && (
-                                        <div>
-                                            <h2 className="text-md font-bold text-gray-900 mb-3">Jugadores</h2>
-                                            
-                                            {/* Input más compacto */}
-                                            <div className="flex gap-2 mb-3">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Nombre del jugador"
-                                                    value={newPlayerName}
-                                                    onChange={(e) => setNewPlayerName(e.target.value)}
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                                                    onKeyPress={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            addPlayer(newPlayerName);
-                                                        }
-                                                    }}
-                                                />
-                                                <button
-                                                    onClick={() => addPlayer(newPlayerName)}
-                                                    className="btn-primary px-3 py-2 rounded text-sm min-w-[44px]"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                </button>
-                                            </div>
-
-                                            {/* Lista de jugadores con SCROLL MEJORADO */}
-                                            {activeTournament.players.length === 0 ? (
-                                                <p className="text-gray-500 text-center py-6 text-sm">No hay jugadores</p>
-                                            ) : (
-                                                <div className="players-list scroll-improved space-y-2 relative">
-                                                    {activeTournament.players.length > 4 && (
-                                                        <div className="scroll-hint">Desliza para ver más</div>
-                                                    )}
-                                                    {activeTournament.players.map((p) => (
-                                                        <div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200">
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-900 text-sm truncate">{p.name}</p>
-                                                                <p className="text-xs text-gray-600">{p.points} puntos • W:{p.wins} L:{p.losses} T:{p.ties}</p>
-                                                            </div>
-                                                    
-                                                            <div className="flex gap-1">
-                                                    
-                                                                {/* BOTÓN EDITAR */}
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const nuevo = prompt("Nuevo nombre del jugador:", p.name);
-                                                                        if (nuevo !== null) editPlayer(p.id, nuevo);
-                                                                    }}
-                                                                    className="px-2 py-1 bg-yellow-400 hover:bg-yellow-500 text-white rounded text-xs"
-                                                                >
-                                                                    Editar
-                                                                </button>
-                                                    
-                                                                {/* BOTÓN ELIMINAR */}
-                                                                <button
-                                                                    onClick={() => deletePlayer(p.id)}
-                                                                    className="btn-danger px-2 py-1 rounded text-xs"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
-                                                    
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Pestaña Rondas - con SCROLL MEJORADO */}
-                                    {activeTab === 'rondas' && (
-                                        <div>
-                                            <div className="flex justify-between items-center mb-3">
-                                                <h2 className="text-md font-bold text-gray-900">Rondas</h2>
-                                                {activeTournament.players.length >= 2 && (
+                                                {!currentRound.completed && (
                                                     <button
-                                                        onClick={generateRound}
-                                                        className="btn-success px-3 py-1 rounded text-xs"
+                                                        onClick={completeRound}
+                                                        className="w-full btn-success py-2 rounded font-bold mt-3 text-sm"
                                                     >
-                                                        Ronda {activeTournament.rounds.length + 1}
+                                                        Completar Ronda {currentRound.number}
                                                     </button>
                                                 )}
                                             </div>
-
-                                            {activeTournament.rounds.length === 0 ? (
-                                                <p className="text-gray-500 text-center py-6 text-sm">No hay rondas generadas</p>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {/* Selector de rondas más compacto */}
-                                                    <div className="flex gap-1 overflow-x-auto pb-1">
-                                                        {activeTournament.rounds.map((r, i) => (
-                                                            <button
-                                                                key={i}
-                                                                onClick={() => changeRound(i)}
-                                                                className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap min-w-[60px] ${
-                                                                    i === activeTournament.currentRoundIndex
-                                                                        ? 'btn-primary'
-                                                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                }`}
-                                                            >
-                                                                R{r.number} {r.completed && '✓'}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-
-                                                    {/* Tabla de la ronda actual con SCROLL MEJORADO */}
-                                                    {currentRound && (
-                                                        <div>
-                                                            <div className="flex justify-between items-center mb-2">
-                                                                <h3 className="text-sm font-bold text-gray-900">Ronda {currentRound.number}</h3>
-                                                                <button
-                                                                    onClick={() => deleteRound(activeTournament.currentRoundIndex)}
-                                                                    className="btn-danger px-2 py-1 rounded text-xs flex items-center gap-1"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                    Eliminar
-                                                                </button>
-                                                            </div>
-                                                            
-                                                            <div className="rounds-table scroll-improved">
-                                                                <table className="w-full text-xs">
-                                                                    <thead>
-                                                                        <tr className="border-b border-gray-200">
-                                                                            <th className="text-left py-1 font-semibold text-gray-900 w-10">Mesa</th>
-                                                                            <th className="text-left py-1 font-semibold text-gray-900">Jugador 1</th>
-                                                                            <th className="text-center py-1 font-semibold text-gray-900 w-6">VS</th>
-                                                                            <th className="text-left py-1 font-semibold text-gray-900">Jugador 2</th>
-                                                                            <th className="text-center py-1 font-semibold text-gray-900 w-20">Resultado</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {currentRound.matches.map((m, mi) => (
-                                                                            <tr key={m.id} className="border-b border-gray-100">
-                                                                                <td className="py-2 font-semibold text-gray-900 text-center">#{mi + 1}</td>
-                                                                                <td className="py-2">
-                                                                                    <span className="font-medium text-gray-900 text-xs block truncate max-w-[80px]">{m.p1.name}</span>
-                                                                                    <span className="text-[10px] text-gray-600 block">{m.p1.points}pts</span>
-                                                                                </td>
-                                                                                <td className="py-2 text-center text-gray-400 text-xs">VS</td>
-                                                                                <td className="py-2">
-                                                                                    {m.p2 ? (
-                                                                                        <>
-                                                                                            <span className="font-medium text-gray-900 text-xs block truncate max-w-[80px]">{m.p2.name}</span>
-                                                                                            <span className="text-[10px] text-gray-600 block">{m.p2.points}pts</span>
-                                                                                        </>
-                                                                                    ) : (
-                                                                                        <span className="text-gray-500 text-xs">BYE</span>
-                                                                                    )}
-                                                                                </td>
-                                                                                <td className="py-2">
-                                                                                    {m.p2 ? (
-                                                                                        <div className="flex flex-col gap-1 items-center">
-                                                                                            <div className="flex gap-1">
-                                                                                                <button
-                                                                                                    onClick={() => setResult(mi, 'p1')}
-                                                                                                    className={`px-1 py-1 rounded text-[10px] font-medium min-w-[24px] ${
-                                                                                                        m.result === 'p1'
-                                                                                                            ? 'btn-success'
-                                                                                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    J1
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    onClick={() => setResult(mi, 'tie', 0)}
-                                                                                                    className={`px-1 py-1 rounded text-[10px] font-medium min-w-[24px] ${
-                                                                                                        m.result === 'tie'
-                                                                                                            ? 'bg-blue-600 text-white'
-                                                                                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    Emp
-                                                                                                </button>
-                                                                                                <button
-                                                                                                    onClick={() => setResult(mi, 'p2')}
-                                                                                                    className={`px-1 py-1 rounded text-[10px] font-medium min-w-[24px] ${
-                                                                                                        m.result === 'p2'
-                                                                                                            ? 'btn-success'
-                                                                                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                                    }`}
-                                                                                                >
-                                                                                                    J2
-                                                                                                </button>
-                                                                                            </div>
-                                                                                            {m.result === 'tie' && (
-                                                                                                <div className="flex gap-1 items-center">
-                                                                                                    <span className="text-[10px] text-gray-600">Pts:</span>
-                                                                                                    <div className="flex gap-1">
-                                                                                                        {[0, 1].map(points => (
-                                                                                                            <button
-                                                                                                                key={points}
-                                                                                                                onClick={() => setResult(mi, 'tie', points)}
-                                                                                                                className={`w-5 h-5 rounded text-[10px] ${
-                                                                                                                    m.tiePoints === points
-                                                                                                                        ? 'bg-blue-600 text-white'
-                                                                                                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                                                }`}
-                                                                                                            >
-                                                                                                                {points}
-                                                                                                            </button>
-                                                                                                        ))}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    ) : (
-                                                                                        <div className="flex flex-col gap-1 items-center">
-                                                                                            <span className="text-[10px] text-gray-600">Puntos:</span>
-                                                                                            <div className="flex gap-1">
-                                                                                                {[0, 1, 2, 3].map(points => (
-                                                                                                    <button
-                                                                                                        key={points}
-                                                                                                        onClick={() => setByePoints(mi, points)}
-                                                                                                        className={`w-6 h-6 rounded text-[10px] font-medium ${
-                                                                                                            m.byePoints === points
-                                                                                                                ? 'btn-primary'
-                                                                                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                                        }`}
-                                                                                                    >
-                                                                                                        {points}
-                                                                                                    </button>
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </td>
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-
-                                                            {!currentRound.completed && (
-                                                                <button
-                                                                    onClick={completeRound}
-                                                                    className="w-full btn-success py-2 rounded font-bold mt-3 text-sm"
-                                                                >
-                                                                    Completar Ronda {currentRound.number}
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
-                );
-            }
-
-            return <div className="text-gray-900 p-4 text-center">Cargando...</div>;
+                </div>
+            );
         }
 
-        try {
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<TorneosYugioh />);
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    </script>
+        return <div className="text-center text-gray-900 p-4">Cargando...</div>;
+    }
+
+    try {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TorneosYugioh />);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+</script>
 </body>
 </html>
-
-
-

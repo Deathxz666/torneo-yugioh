@@ -1,77 +1,53 @@
-const CACHE_NAME = "yugioh-tournament-v7";
-const OFFLINE_URL = "/torneo-yugioh/index.html";
+const CACHE_NAME = 'yugioh-tournament-v8';
+const OFFLINE_URL = 'index.html';
 
-// Archivos que deben existir offline
 const urlsToCache = [
-  "/torneo-yugioh/",
-  "/torneo-yugioh/index.html",
-  "/torneo-yugioh/manifest.json",
-  "/torneo-yugioh/sw.js",
-  "/torneo-yugioh/icon-192.png",
-  "/torneo-yugioh/icon-512.png",
-
-  // React - Necesario para que tu app funcione sin internet
-  "https://unpkg.com/react@18/umd/react.development.js",
-  "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
-
-  // Babel (tu app lo usa para interpretar JSX en runtime)
-  "https://unpkg.com/@babel/standalone/babel.min.js",
-
-  // Tailwind CDN
-  "https://cdn.tailwindcss.com",
+  './',
+  './index.html',
+  './manifest.json',
+  './sw.js'
 ];
 
-// INSTALACIÓN: precargar todo
-self.addEventListener("install", (event) => {
-  self.skipWaiting();
+// INSTALACIÓN
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
+  self.skipWaiting();
 });
 
-// ACTIVACIÓN: limpiar versiones antiguas
-self.addEventListener("activate", (event) => {
-  clients.claim();
+// ACTIVACIÓN
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
+  self.clients.claim();
 });
 
-// FETCH: Offline estable y compatible con PWABuilder
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-
-  // Navegación → Network First con fallback offline
-  if (request.mode === "navigate") {
+// FETCH
+self.addEventListener('fetch', event => {
+  // Para navegación → fallback index.html
+  if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          return response;
-        })
-        .catch(() => caches.match(OFFLINE_URL))
+      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // Otros archivos → Cache First con actualización en segundo plano
+  // Otros recursos
   event.respondWith(
-    caches.match(request).then((cacheRes) => {
+    caches.match(event.request).then(cached => {
       return (
-        cacheRes ||
-        fetch(request)
-          .then((response) => {
-            // Cache dinámico
-            const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, cloned);
-            });
-            return response;
+        cached ||
+        fetch(event.request)
+          .then(res => {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+            return res;
           })
-          .catch(() => cacheRes) // fallback
+          .catch(() => cached)
       );
     })
   );
